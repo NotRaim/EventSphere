@@ -1,0 +1,5 @@
+const jwt=require('jsonwebtoken');const User=require('../models/User');
+async function auth(req,res,next){try{const h=req.headers.authorization||'';if(!h.startsWith('Bearer '))return res.status(401).json({message:'Authentication required'});const p=jwt.verify(h.slice(7),process.env.JWT_SECRET);const u=await User.findById(p.id).select('-passwordHash');if(!u||u.status==='suspended')return res.status(401).json({message:'Session is no longer valid'});req.user=u;next()}catch{return res.status(401).json({message:'Invalid or expired session'})}}
+async function optionalAuth(req,res,next){try{const h=req.headers.authorization||'';if(h.startsWith('Bearer ')){const p=jwt.verify(h.slice(7),process.env.JWT_SECRET);const u=await User.findById(p.id).select('-passwordHash');if(u&&u.status!=='suspended')req.user=u}}catch{}next()}
+const role=(...roles)=>(req,res,next)=>roles.includes(req.user.role)?next():res.status(403).json({message:'You do not have permission for this action'});
+module.exports={auth,optionalAuth,role};

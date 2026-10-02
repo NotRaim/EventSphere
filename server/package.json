@@ -1,0 +1,25 @@
+{
+  "name": "eventsphere-server",
+  "version": "4.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node utils/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.0",
+    "pdfkit": "^0.17.2",
+    "qrcode": "^1.5.4",
+    "cloudinary": "^2.7.0",
+    "multer": "^2.0.2",
+    "serverless-http": "^3.2.0"
+  }
+}

@@ -1,0 +1,1 @@
+const mongoose=require('mongoose');const s=new mongoose.Schema({userId:{type:mongoose.Schema.Types.ObjectId,ref:'User'},eventId:{type:mongoose.Schema.Types.ObjectId,ref:'Event'},value:{type:Number,min:1,max:5}});s.index({userId:1,eventId:1},{unique:true});module.exports=mongoose.model('Rating',s);

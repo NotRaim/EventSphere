@@ -1,0 +1,25 @@
+const router=require('express').Router();const Ticket=require('../models/Ticket');const Event=require('../models/Event');const QR=require('qrcode');const PDFDocument=require('pdfkit');const {auth,role}=require('../middleware/auth');const {signature,safeEqual}=require('../utils/ticket');
+function isValid(t,s){return !!t&&t.status==='valid'&&safeEqual(s||'',signature(t.ticketCode,t.userId,t.eventId))}
+router.get('/mine',auth,async(req,res)=>res.json((await Ticket.find({userId:req.user._id}).sort({createdAt:-1}).lean()).map(t=>({...t,id:t._id.toString()}))));
+router.get('/organizer',auth,role('organizer','admin'),async(req,res)=>{
+  const ids=req.user.role==='admin'?null:(await Event.find({organizerId:req.user._id}).select('_id').lean()).map(e=>e._id);
+  const q=ids?{eventId:{$in:ids}}:{};
+  if(req.query.eventId)q.eventId=req.query.eventId;
+  const ts=await Ticket.find(q).sort({createdAt:-1}).lean();
+  res.json(ts.map(t=>({...t,id:t._id.toString()})));
+});
+router.get('/:id/qr',auth,role('organizer','admin'),async(req,res)=>{
+  try{
+    const t=await Ticket.findById(req.params.id).lean();
+    if(!t)return res.status(404).json({message:'Ticket not found'});
+    const e=await Event.findById(t.eventId).select('organizerId').lean();
+    if(req.user.role==='organizer'&&(!e||String(e.organizerId)!==String(req.user._id)))return res.status(403).json({message:'You do not manage this event'});
+    const base=process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`;
+    const verificationUrl=`${base}/verify/${encodeURIComponent(t.ticketCode)}?sig=${encodeURIComponent(t.verificationSig)}`;
+    const dataUrl=await QR.toDataURL(verificationUrl,{width:320,margin:2,errorCorrectionLevel:'H'});
+    res.json({ticketCode:t.ticketCode,status:t.status,verificationUrl,dataUrl});
+  }catch(err){res.status(500).json({message:err.message||'Could not generate QR'})}
+});
+router.get('/:id/download',auth,async(req,res)=>{const t=await Ticket.findById(req.params.id);if(!t||String(t.userId)!==String(req.user._id))return res.status(404).json({message:'Ticket not found'});const base=process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`;const verify=`${base}/verify/${encodeURIComponent(t.ticketCode)}?sig=${encodeURIComponent(t.verificationSig)}`;const qr=await QR.toDataURL(verify,{width:280,margin:1,errorCorrectionLevel:'H'});const colors={Music:'#18d7ff',Food:'#ffb84d',Design:'#d7a6ff',Film:'#ff6b9d',Sports:'#77e08b',Wellness:'#8ec5ff',Community:'#fff'};const accent=colors[t.eventSnapshot.category]||'#18d7ff';const doc=new PDFDocument({size:[420,680],margin:28});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`attachment; filename="${t.ticketCode}.pdf"`);doc.pipe(res);doc.rect(0,0,420,680).fill('#050809');doc.roundedRect(18,18,384,644,24).fill('#0c1213').stroke('#263a3a');doc.fillColor(accent).fontSize(10).text('EVENTSPHERE · VERIFIED TICKET',40,44,{characterSpacing:2});doc.fillColor('#f4fbfb').fontSize(30).font('Helvetica-Bold').text(t.eventSnapshot.title,40,78,{width:330});doc.fillColor('#9bb0b0').fontSize(11).font('Helvetica').text(`${t.eventSnapshot.category} · ${t.eventSnapshot.city}`,40,165);doc.fillColor('#f4fbfb').fontSize(13).text(`${t.eventSnapshot.date} · ${t.eventSnapshot.time||''}`,40,198);doc.text(t.eventSnapshot.venue||'Venue TBA',40,220,{width:300});doc.image(qr,250,275,{width:125,height:125});doc.fillColor('#9bb0b0').fontSize(9).text('SCAN TO VERIFY',265,410,{width:100,align:'center'});doc.fillColor('#f4fbfb').fontSize(13).text('Ticket ID',40,300);doc.fillColor(accent).fontSize(16).font('Helvetica-Bold').text(t.ticketCode,40,320);doc.fillColor('#9bb0b0').fontSize(10).font('Helvetica').text(`Status: ${t.status.toUpperCase()}`,40,355);doc.text(`Paid: ₹${Number(t.amountPaid||0).toLocaleString('en-IN')}`,40,374);doc.text('This ticket is validated against the EventSphere database.',40,470,{width:320});doc.fillColor('#607474').fontSize(8).text('Do not edit the QR payload. Entry is subject to organizer validation.',40,590,{width:320});doc.end()});
+router.get('/verify/:code',async(req,res)=>{const t=await Ticket.findOne({ticketCode:req.params.code}).lean();const ok=isValid(t,req.query.sig);res.json({valid:ok,status:!t?'NOT_FOUND':!ok?'INVALID':t.status.toUpperCase(),ticket:ok?{ticketCode:t.ticketCode,event:t.eventSnapshot,checkedInAt:t.checkedInAt||null}:null})});
+router.post('/:id/checkin',auth,role('organizer','admin'),async(req,res)=>{const t=await Ticket.findById(req.params.id);if(!t)return res.status(404).json({message:'Ticket not found'});const e=await Event.findById(t.eventId);if(req.user.role==='organizer'&&String(e.organizerId)!==String(req.user._id))return res.status(403).json({message:'You do not manage this event'});if(t.status!=='valid')return res.status(409).json({message:`Ticket is ${t.status}`});t.status='used';t.checkedInAt=new Date();t.checkedInBy=req.user._id;await t.save();res.json({ok:true,message:'Ticket checked in',ticket:{id:t._id.toString(),status:t.status,checkedInAt:t.checkedInAt}})});module.exports=router;

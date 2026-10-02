@@ -1,0 +1,1 @@
+const mongoose=require('mongoose');module.exports=mongoose.model('Notification',new mongoose.Schema({userId:{type:mongoose.Schema.Types.ObjectId,ref:'User',index:true},title:String,message:String,read:{type:Boolean,default:false}},{timestamps:true}));
