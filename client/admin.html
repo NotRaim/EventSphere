@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050809">
+  <title>Admin — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-nav">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="events.html">Discover</a>
+    <a href="organizer.html">Create event</a>
+    <a href="dashboard.html">My plans</a>
+  </nav>
+  <div class="nav-actions"><button class="nav-toggle" data-menu aria-label="Open menu" type="button">☰</button></div>
+</header>
+<div class="mobile-panel">
+  <a href="index.html">Home</a>
+  <a href="events.html">Discover events</a>
+  <a href="organizer.html">Create event</a>
+</div>
+<main class="dashboard-page">
+  <div class="container">
+    <div class="dash-top reveal">
+      <div><div class="section-kicker">Admin control center</div><h1 class="section-title">Run the EventSphere<br><span style="color:var(--cyan)">ecosystem.</span></h1><p class="section-copy">Admins can moderate every event, inspect platform activity, manage check-in operations and use organizer tools when needed.</p></div>
+      <div class="toolbar">
+        <a class="btn btn-ghost" href="moderation.html">Moderate events</a>
+        <a class="btn btn-ghost" href="analytics.html">Analytics</a>
+        <a class="btn btn-ghost" href="attendees.html">All attendees</a>
+        <a class="btn btn-cyan" href="organizer.html">Create event</a>
+      </div>
+    </div>
+
+    <div class="stats reveal">
+      <div class="glass-panel stat"><small>Total users</small><strong id="admin-users">—</strong></div>
+      <div class="glass-panel stat"><small>Organizers</small><strong id="admin-organizers">—</strong></div>
+      <div class="glass-panel stat"><small>Published events</small><strong id="admin-published">—</strong></div>
+      <div class="glass-panel stat"><small>Tickets</small><strong id="admin-tickets">—</strong></div>
+    </div>
+
+    <section class="glass-panel panel reveal" style="margin-top:18px">
+      <div class="section-head" style="margin-bottom:16px"><div><div class="section-kicker">Platform activity</div><h3>All events</h3></div><a class="btn btn-small btn-ghost" href="moderation.html">Open moderation</a></div>
+      <div class="toolbar"><input class="search" id="admin-search" placeholder="Search all events…"><select class="search" id="admin-status"><option value="all">All statuses</option><option value="published">Published</option><option value="pending">Pending</option><option value="draft">Draft</option><option value="rejected">Rejected</option><option value="archived">Archived</option></select></div>
+      <div class="list" id="admin-events"></div>
+    </section>
+
+    <section class="glass-panel panel reveal" style="margin-top:18px">
+      <div class="section-head" style="margin-bottom:16px"><div><div class="section-kicker">Support inbox</div><h3>Messages from users</h3></div><span class="muted">Latest 50</span></div>
+      <div class="list" id="admin-messages"></div>
+    </section>
+
+    <section class="section" style="padding-top:20px">
+      <div class="feature-grid">
+        <a class="glass-panel feature-card" href="organizer.html"><div class="feature-icon">＋</div><h3>Create event</h3><p>Admins can create events and publish them directly.</p></a>
+        <a class="glass-panel feature-card" href="attendees.html"><div class="feature-icon">◉</div><h3>Check-in operations</h3><p>Inspect all tickets and check attendees in.</p></a>
+        <a class="glass-panel feature-card" href="profile.html"><div class="feature-icon">◎</div><h3>Admin profile</h3><p>Manage your own account and preferences like any other authenticated user.</p></a>
+      </div>
+    </section>
+  </div>
+</main>
+<div id="toasts"></div>
+<script src="js/app.js"></script>
+<script src="js/admin.js"></script>
+<button class="back-button" type="button" data-back>← Back</button>
+</body>
+</html>

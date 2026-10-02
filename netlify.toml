@@ -1,0 +1,20 @@
+[build]
+  publish = "client"
+  functions = "server/netlify/functions"
+  command = "npm --prefix server install"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["express", "mongoose", "pdfkit", "qrcode", "bcryptjs", "jsonwebtoken", "cors", "helmet", "multer", "cloudinary", "serverless-http"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/verify/*"
+  to = "/.netlify/functions/api/verify/:splat"
+  status = 200
+  force = true

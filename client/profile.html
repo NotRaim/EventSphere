@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Profile — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
+
+<header class="site-nav">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <nav class="nav-links">
+    <a class="" href="index.html">Home</a>
+    <a class="" href="events.html">Discover</a>
+    <a class="" href="organizer.html">Create event</a>
+    <a class="active" href="dashboard.html">My plans</a>
+  </nav>
+  <div class="nav-actions">
+    <button class="nav-toggle" data-menu aria-label="Open menu">☰</button>
+  </div>
+</header>
+<div class="mobile-panel">
+  <a href="index.html">Home</a>
+  <a href="events.html">Discover events</a>
+  <a href="organizer.html">Create event</a>
+</div>
+
+<main class="dashboard-page profile-page">
+  <div class="container">
+    <div class="dash-top reveal">
+      <div>
+        <div class="section-kicker">Your account</div>
+        <h1 class="section-title">Your EventSphere.</h1>
+        <p class="section-copy">Keep your personal details, profile and discovery preferences up to date.</p>
+      </div>
+      <a class="btn btn-ghost" href="contact-admin.html">Contact admin</a>
+    </div>
+
+    <div class="profile-layout">
+      <section class="glass-panel profile-card reveal">
+        <div class="profile-head profile-head-large">
+          <div class="avatar avatar-xl" id="avatar">E</div>
+          <div class="profile-identity">
+            <span class="profile-role" id="profile-role">MEMBER</span>
+            <h2 id="profile-name">Guest</h2>
+            <p class="muted" id="profile-email">—</p>
+          </div>
+        </div>
+        <div class="profile-divider"></div>
+        <form id="profile-form">
+          <div class="section-kicker">Personal details</div>
+          <h3 class="profile-section-title">Edit your details</h3>
+          <div class="form-row">
+            <div class="field"><label>Name</label><input name="name" autocomplete="name" required maxlength="80"></div>
+            <div class="field"><label>Phone</label><input name="phone" autocomplete="tel" placeholder="Optional"></div>
+          </div>
+          <div class="field"><label>Email</label><input id="profile-email-input" type="email" disabled></div>
+          <div class="field"><label>About you</label><textarea name="bio" rows="4" maxlength="500" placeholder="Tell the EventSphere community a little about you."></textarea></div>
+          <button class="btn btn-cyan" type="submit">Save profile</button>
+          <span class="form-hint">Your changes are saved to your EventSphere account.</span>
+        </form>
+
+        <div class="profile-divider"></div>
+
+        <section class="password-card" aria-labelledby="password-title">
+          <div class="password-card-head">
+            <div>
+              <div class="section-kicker">Account security</div>
+              <h3 id="password-title" class="profile-section-title">Change password</h3>
+              <p class="muted password-copy">Use a strong password with at least 8 characters. Your new password is saved securely in the database.</p>
+            </div>
+            <span class="security-badge">SECURE</span>
+          </div>
+          <form id="password-form" class="password-form" autocomplete="off">
+            <div class="field password-field"><label for="current-password">Current password</label><div class="password-input-wrap"><input id="current-password" name="currentPassword" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-password-toggle="current-password" aria-label="Show current password">◉</button></div></div>
+            <div class="form-row">
+              <div class="field password-field"><label for="new-password">New password</label><div class="password-input-wrap"><input id="new-password" name="newPassword" type="password" minlength="8" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="new-password" aria-label="Show new password">◉</button></div></div>
+              <div class="field password-field"><label for="confirm-password">Confirm password</label><div class="password-input-wrap"><input id="confirm-password" name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="confirm-password" aria-label="Show confirmed password">◉</button></div></div>
+            </div>
+            <div class="password-strength" id="password-strength" aria-live="polite"><span></span><span></span><span></span><span></span><small>Enter a new password</small></div>
+            <button class="btn btn-ghost password-submit" type="submit">Update password →</button>
+            <div class="message password-message" id="password-message"></div>
+          </form>
+        </section>
+      </section>
+
+      <aside class="profile-side">
+        <section class="glass-panel panel reveal profile-preferences">
+          <div class="section-kicker">Personalize your feed</div>
+          <h2 class="serif profile-side-title">What do you want to discover?</h2>
+          <p class="muted">Choose interests to shape your recommendations.</p>
+          <div class="chip-grid" id="profile-interests">
+            <button class="interest-chip" data-interest="Music" type="button">Music</button>
+            <button class="interest-chip" data-interest="Food" type="button">Food</button>
+            <button class="interest-chip" data-interest="Design" type="button">Design</button>
+            <button class="interest-chip" data-interest="Film" type="button">Film</button>
+            <button class="interest-chip" data-interest="Sports" type="button">Sports</button>
+            <button class="interest-chip" data-interest="Wellness" type="button">Wellness</button>
+            <button class="interest-chip" data-interest="Community" type="button">Community</button>
+            <button class="interest-chip" data-interest="Tech" type="button">Tech</button>
+          </div>
+          <div class="field"><label>Preferred city</label><input id="preferred-city" placeholder="Ahmedabad"></div>
+          <div class="field"><label>Discovery mode</label><select id="discovery-mode"><option value="balanced">A little of everything</option><option value="nearby">Mostly nearby</option><option value="saved">Similar to my saves</option></select></div>
+          <button class="btn btn-cyan" id="save-preferences" type="button">Save preferences</button>
+        </section>
+
+        <section class="glass-panel panel reveal contact-card">
+          <div class="contact-icon">✦</div>
+          <div>
+            <div class="section-kicker">Need help?</div>
+            <h3>Talk to EventSphere admin</h3>
+            <p class="muted">Ask about tickets, event changes, payments, account issues or report a problem.</p>
+            <a class="btn btn-ghost" href="contact-admin.html">Open contact admin →</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+<div id="toasts"></div>
+<script src="js/app.js"></script>
+<script src="js/profile.js"></script><button class="back-button" type="button" data-back>← Back</button>
+</body></html>

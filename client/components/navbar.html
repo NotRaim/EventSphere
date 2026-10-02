@@ -1,0 +1,33 @@
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a class="logo" href="index.html" aria-label="EventSphere home">
+      <span class="logo-mark"><i class="fa-solid fa-globe"></i></span>EventSphere
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main">
+      <a href="index.html" data-nav="home">Home</a>
+      <a href="events.html" data-nav="events">Events</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#contact">Contact</a>
+      <a href="login.html" class="only-mobile" data-guest>Login</a>
+      <a href="register.html" class="only-mobile" data-guest>Register</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle dark / light theme"><i class="fa-solid fa-moon"></i></button>
+
+      <!-- shown when logged out -->
+      <a href="login.html" class="btn btn-ghost btn-sm hide-sm" data-guest>Login</a>
+      <a href="register.html" class="btn btn-primary btn-sm hide-sm" data-guest>Register</a>
+
+      <!-- shown when logged in -->
+      <a href="dashboard.html#notifications" class="icon-btn" id="bell" data-auth hidden aria-label="Notifications">
+        <i class="fa-regular fa-bell"></i><span class="badge-dot" id="bellCount" hidden>0</span>
+      </a>
+      <a href="dashboard.html" class="btn btn-primary btn-sm hide-sm" id="dashLink" data-auth hidden>Dashboard</a>
+      <button class="icon-btn" id="logoutBtn" data-auth hidden aria-label="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
+
+      <button class="icon-btn menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>

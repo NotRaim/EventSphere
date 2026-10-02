@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Log in — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
+
+<header class="site-nav">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <nav class="nav-links">
+    <a class="" href="index.html">Home</a>
+    <a class="" href="events.html">Discover</a>
+    <a class="" href="organizer.html">Create event</a>
+    <a class="" href="dashboard.html">My plans</a>
+  </nav>
+  <div class="nav-actions">
+    <button class="nav-toggle" data-menu aria-label="Open menu">☰</button>
+  </div>
+</header>
+<div class="mobile-panel">
+  <a href="index.html">Home</a>
+  <a href="events.html">Discover events</a>
+  <a href="organizer.html">Create event</a>
+</div>
+<main class="auth-page"><div class="container"><div class="auth-shell glass-panel reveal">
+      <aside class="auth-art"><div class="eyebrow"><i></i>Welcome back</div><h1>Your plans are waiting.</h1><p>Open your saved events, tickets and upcoming plans.</p></aside>
+      <section class="auth-form"><div class="section-kicker">Account</div><h2>Log in</h2><p class="muted">Welcome back. Let’s get you back to your plans.</p>
+      <form id="auth-form" data-mode="login">
+      <div class="field"><label>Email</label><input type="email" name="email" required placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" name="password" required placeholder="Your password"></div>
+    <button type="submit" class="btn btn-cyan" style="width:100%">Continue →</button><div class="message"></div></form>
+      <p class="muted" style="font-size:13px">New here? <a style="color:var(--cyan)" href="register.html">Create an account</a></p></section>
+    </div></div></main>
+<div id="toasts"></div>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<button class="back-button" type="button" data-back>← Back</button></body></html>

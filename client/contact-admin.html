@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050809">
+  <title>Contact Admin — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-nav">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <nav class="nav-links"><a href="index.html">Home</a><a href="events.html">Discover</a><a href="organizer.html">Create event</a><a href="dashboard.html">My plans</a></nav>
+  <div class="nav-actions"><button class="nav-toggle" data-menu aria-label="Open menu" type="button">☰</button></div>
+</header>
+<div class="mobile-panel"><a href="index.html">Home</a><a href="events.html">Discover events</a><a href="organizer.html">Create event</a></div>
+
+<main class="dashboard-page contact-page">
+  <div class="container">
+    <div class="contact-hero reveal">
+      <div>
+        <div class="section-kicker">Support</div>
+        <h1 class="section-title">Talk to the<br><span style="color:var(--cyan)">EventSphere team.</span></h1>
+        <p class="section-copy">Have a ticket problem, payment question, event issue or account concern? Send a message to the admin team and your request will be stored securely with your account details.</p>
+      </div>
+      <div class="contact-quick glass-panel">
+        <span class="contact-icon">✦</span>
+        <strong>Admin support</strong>
+        <span class="muted">One place for platform help</span>
+      </div>
+    </div>
+
+    <section class="contact-layout">
+      <div class="glass-panel panel reveal">
+        <div class="section-kicker">Send a message</div>
+        <h2 class="serif contact-form-title">How can we help?</h2>
+        <form id="contact-admin-form">
+          <div class="form-row">
+            <div class="field"><label>Name</label><input name="name" required maxlength="80" autocomplete="name"></div>
+            <div class="field"><label>Email</label><input name="email" type="email" required maxlength="160" autocomplete="email"></div>
+          </div>
+          <div class="field"><label>Subject</label><select name="subject"><option value="General help">General help</option><option value="Ticket issue">Ticket issue</option><option value="Payment issue">Payment issue</option><option value="Event issue">Event issue</option><option value="Account issue">Account issue</option><option value="Report a problem">Report a problem</option></select></div>
+          <div class="field"><label>Message</label><textarea name="message" rows="7" maxlength="2000" required placeholder="Tell the admin team what happened and what you need help with..."></textarea><small class="form-hint" id="message-count">0 / 2000</small></div>
+          <button class="btn btn-cyan" type="submit" id="send-contact">Send to admin →</button>
+          <p class="form-hint">Your message is saved in EventSphere so the admin team can review it.</p>
+          <div class="message" id="contact-message" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <aside class="contact-side">
+        <section class="glass-panel panel reveal">
+          <div class="section-kicker">Before you send</div>
+          <div class="support-item"><span>01</span><div><strong>Ticket problems</strong><p class="muted">Include your ticket code if you have one.</p></div></div>
+          <div class="support-item"><span>02</span><div><strong>Payment problems</strong><p class="muted">Mention the event name and payment context.</p></div></div>
+          <div class="support-item"><span>03</span><div><strong>Event problems</strong><p class="muted">Tell us the event title and what needs attention.</p></div></div>
+        </section>
+        <a class="glass-panel panel contact-back-card reveal" href="profile.html"><span class="contact-icon">◎</span><div><strong>Back to profile</strong><p class="muted">Update your account details anytime.</p></div><span>→</span></a>
+      </aside>
+    </section>
+  </div>
+</main>
+<div id="toasts"></div>
+<script src="js/app.js"></script>
+<script src="js/contact-admin.js"></script>
+<button class="back-button" type="button" data-back>← Back</button>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Organizer Studio — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
+<header class="site-nav">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <nav class="nav-links"><a href="index.html">Home</a><a href="events.html">Discover</a><a class="active" href="organizer.html">Create event</a><a href="dashboard.html">My plans</a></nav>
+  <div class="nav-actions"><button class="nav-toggle" data-menu aria-label="Open menu">☰</button></div>
+</header>
+<div class="mobile-panel">
+  <a href="index.html">Home</a>
+  <a href="events.html">Discover events</a>
+  <a href="organizer.html">Create event</a>
+</div>
+
+<main class="dashboard-page"><div class="container">
+  <div class="dash-top reveal"><div><div class="section-kicker">Organizer studio</div><h1 class="section-title">Build it.<br><span style="color:var(--cyan)">Run it.</span></h1><p class="section-copy">Create, publish and manage every part of your event from one place.</p></div>
+    <div class="toolbar"><a class="btn btn-ghost" href="manage-events.html">Manage events</a><a class="btn btn-cyan" href="#create">Create event</a></div>
+  </div>
+  <div class="kpi-grid reveal">
+    <div class="glass-panel kpi"><small>Published events</small><strong id="published-count">0</strong><span class="muted">Your live listings</span></div>
+    <div class="glass-panel kpi"><small>Registrations</small><strong id="registration-count">0</strong><span class="muted">Across your events</span></div>
+    <div class="glass-panel kpi"><small>Capacity used</small><strong id="capacity-count">0%</strong><span class="muted">Current utilization</span></div>
+  </div>
+
+  <section id="create" class="glass-panel panel reveal">
+    <div class="section-head"><div><div class="section-kicker">New event</div><h2>Create an event</h2></div><span class="pill">Organizer only</span></div>
+    <form id="create-event">
+      <div class="form-row"><div class="field"><label>Event name</label><input name="title" required placeholder="Sunday Food Stories"></div><div class="field"><label>Category</label><select name="category"><option>Music</option><option>Food</option><option>Design</option><option>Film</option><option>Sports</option><option>Wellness</option><option>Community</option></select></div></div>
+      <div class="form-row"><div class="field"><label>Date</label><input type="date" name="date" required></div><div class="field"><label>Time</label><input type="time" name="time" required></div></div>
+      <div class="form-row"><div class="field"><label>Venue</label><input name="venue" required placeholder="The Courtyard"></div><div class="field"><label>City</label><input name="city" value="Ahmedabad"></div></div>
+      <div class="form-row"><div class="field"><label>Ticket price</label><input type="number" name="price" min="0" value="0"></div><div class="field"><label>Capacity</label><input type="number" name="capacity" min="1" value="100"></div></div>
+      <div class="form-row"><div class="field"><label>Registration deadline</label><input type="date" name="registrationDeadline"></div><div class="field"><label>Cover image URL</label><input name="image" placeholder="https://…"></div></div>
+      <div class="form-row"><div class="field"><label>Ticket type</label><input name="ticketTypes" value="General Admission"></div><div class="field"><label>Visibility</label><select name="visibility"><option value="public">Public</option><option value="private">Private</option></select></div></div>
+      <div class="field"><label>Description</label><textarea name="description" rows="6" required placeholder="Tell people why this event is worth their time."></textarea></div>
+      <div class="toolbar"><button type="button" class="btn btn-ghost" id="save-draft">Save draft</button><button type="submit" class="btn btn-cyan">Publish event →</button></div>
+      <div id="organizer-message" class="message"></div>
+    </form>
+  </section>
+
+  <section class="section" style="padding-top:24px"><div class="feature-grid">
+    <a class="glass-panel feature-card" href="manage-events.html"><div class="feature-icon">▦</div><h3>Manage events</h3><p>Edit, publish, archive and inspect every event.</p></a>
+    <a class="glass-panel feature-card" href="attendees.html"><div class="feature-icon">◉</div><h3>Attendees</h3><p>Search registrations and handle check-in.</p></a>
+    <a class="glass-panel feature-card" href="analytics.html"><div class="feature-icon">↗</div><h3>Analytics</h3><p>Track views, registrations, capacity and revenue.</p></a>
+  </div></section>
+</div></main>
+<div id="toasts"></div><script src="js/app.js"></script><script src="js/organizer.js"></script><button class="back-button" type="button" data-back>← Back</button></body></html>
