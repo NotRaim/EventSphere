@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const mongoose = require('mongoose');
+const { rateLimit } = require('./middleware/security');
 
 const connect = require('./config/db');
 
@@ -21,31 +22,49 @@ const origins = (process.env.CLIENT_ORIGIN || '')
     .map(x => x.trim())
     .filter(Boolean);
 
+app.set('trust proxy', 1);
+
+if (process.env.NODE_ENV === 'production') {
+    const required = ['MONGODB_URI', 'JWT_SECRET', 'TICKET_SIGNING_SECRET', 'CLIENT_ORIGIN', 'PUBLIC_BASE_URL'];
+    const missing = required.filter(name => !process.env[name]);
+    if (missing.length) throw new Error(`Missing required production environment variables: ${missing.join(', ')}`);
+}
+
+
 
 /* =========================================================
    SECURITY / MIDDLEWARE
 ========================================================= */
 
-app.use(
-    helmet({
-        contentSecurityPolicy: false
-    })
-);
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            baseUri: ["'self'"],
+            frameAncestors: ["'none'"],
+            objectSrc: ["'none'"],
+            formAction: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+            fontSrc: ["'self'", 'data:', 'https:'],
+            connectSrc: ["'self'", 'https:'],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
+
+app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 app.use(
     cors({
         origin: (origin, callback) => {
             // Allow requests without an Origin header
             // and allow all origins if CLIENT_ORIGIN is empty.
-            if (
-                !origin ||
-                !origins.length ||
-                origins.includes(origin)
-            ) {
-                return callback(null, true);
-            }
+            if (!origin || origins.includes(origin)) return callback(null, true);
 
-            return callback(new Error('CORS blocked'));
+            return callback(null, false);
         }
     })
 );
@@ -69,17 +88,9 @@ app.use(
    JSON BODY
 ========================================================= */
 
-app.use(
-    express.json({
-        limit: '8mb'
-    })
-);
+app.use(express.json({ limit: '2mb' }));
 
-app.use(
-    express.urlencoded({
-        extended: true
-    })
-);
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 /* Netlify/serverless request-body normalization. */
 app.use((req,res,next)=>{
@@ -114,10 +125,7 @@ app.get('/api/health', (req, res) => {
    API ROUTES
 ========================================================= */
 
-app.use(
-    '/api/auth',
-    require('./routes/auth')
-);
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 15, message: 'Too many authentication attempts. Please try again later.' }), require('./routes/auth'));
 
 app.use(
     '/api/events',
@@ -134,10 +142,8 @@ app.use(
     require('./routes/payments').router
 );
 
-app.use(
-    '/api/tickets',
-    require('./routes/tickets')
-);
+app.use('/api/tickets/verify', rateLimit({ windowMs: 60 * 1000, max: 30, message: 'Too many ticket verification attempts. Please try again later.' }));
+app.use('/api/tickets', require('./routes/tickets'));
 
 app.use(
     '/api/admin',
@@ -149,10 +155,7 @@ app.use(
     require('./routes/contact')
 );
 
-app.use(
-    '/api/event-reports',
-    require('./routes/event-reports')
-);
+app.use('/api/event-reports', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Too many reports. Please try again later.' }), require('./routes/event-reports'));
 
 app.use(
     '/api/recommendations',
@@ -181,7 +184,7 @@ app.get('/verify/:code', async (req, res) => {
 
         const valid =
             !!ticket &&
-            ticket.status === 'valid' &&
+            ['valid', 'used'].includes(ticket.status) &&
             safeEqual(
                 req.query.sig || '',
                 signature(
@@ -374,7 +377,7 @@ app.get('/verify/:code', async (req, res) => {
             valid
                 ? `
                     <span class="status">
-                        VERIFIED
+                        ${ticket.status === 'used' ? 'CHECKED IN' : 'VERIFIED'}
                     </span>
 
                     <h2>
@@ -414,15 +417,15 @@ app.get('/verify/:code', async (req, res) => {
                     </p>
 
                     <p>
-                        This ticket is valid according
-                        to the EventSphere database.
+                        ${ticket.status === 'used'
+                            ? 'This ticket has already been checked in by an organizer.'
+                            : 'This ticket is valid according to the EventSphere database.'}
                     </p>
                 `
                 : `
                     <p>
                         The ticket code or signature
-                        is invalid, or this ticket has
-                        already been used or cancelled.
+                        is invalid, cancelled, or could not be authenticated.
                     </p>
                 `
         }
@@ -535,6 +538,15 @@ app.use(
 
     }
 );
+
+
+app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
+app.use((err, req, res, next) => {
+    const status = Number(err.status || 500);
+    if (status >= 500) console.error('API error:', err);
+    const message = status >= 500 ? 'Server error. Please try again.' : (err.message || 'Request failed');
+    res.status(status).json({ success: false, message });
+});
 
 
 /* =========================================================

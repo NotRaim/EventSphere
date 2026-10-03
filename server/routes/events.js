@@ -28,10 +28,17 @@ function normalizeTicketTypes(input, fallbackPrice=0, fallbackCapacity=100){
 function cleanEventBody(body={}){
   const out={};
   for(const key of editableFields) if(Object.prototype.hasOwnProperty.call(body,key))out[key]=body[key];
-  if(out.price!==undefined)out.price=Math.max(0,Number(out.price||0));
-  if(out.capacity!==undefined)out.capacity=Math.max(1,Number(out.capacity||1));
+  for(const key of ['title','category','venue','city']) if(out[key]!==undefined) out[key]=String(out[key]||'').trim();
+  if(out.title!==undefined && (out.title.length<2 || out.title.length>140)) throw new Error('Title must be between 2 and 140 characters');
+  if(out.category!==undefined && (out.category.length<2 || out.category.length>60)) throw new Error('Invalid category');
+  if(out.venue!==undefined && (out.venue.length<2 || out.venue.length>180)) throw new Error('Invalid venue');
+  if(out.city!==undefined && (out.city.length<2 || out.city.length>80)) throw new Error('Invalid city');
+  if(out.description!==undefined){ out.description=String(out.description||'').trim(); if(out.description.length<10 || out.description.length>5000) throw new Error('Description must be between 10 and 5000 characters'); }
+  if(out.price!==undefined){ const n=Number(out.price); if(!Number.isFinite(n)||n<0||n>10000000) throw new Error('Invalid price'); out.price=n; }
+  if(out.capacity!==undefined){ const n=Number(out.capacity); if(!Number.isInteger(n)||n<1||n>1000000) throw new Error('Invalid capacity'); out.capacity=n; }
   if(out.ticketTypes!==undefined)out.ticketTypes=normalizeTicketTypes(out.ticketTypes,out.price??0,out.capacity??100);
-  if(out.gallery!==undefined)out.gallery=Array.isArray(out.gallery)?out.gallery.map(x=>String(x||'')).filter(Boolean).slice(0,6):[];
+  if(out.gallery!==undefined)out.gallery=Array.isArray(out.gallery)?out.gallery.map(x=>String(x||'').trim()).filter(Boolean).slice(0,6):[];
+  if(out.image!==undefined)out.image=String(out.image||'').trim().slice(0,2000);
   return out;
 }
 
@@ -93,9 +100,18 @@ router.patch('/:id',auth,role('organizer','admin'),async(req,res)=>{
     const requestedStatus=req.body.status!==undefined?String(req.body.status):null;
     const allowedStatus=['draft','pending','published','rejected','archived','cancelled'];
     if(requestedStatus && !allowedStatus.includes(requestedStatus))return res.status(400).json({message:'Invalid event status'});
+    if(req.user.role==='organizer' && requestedStatus && requestedStatus!=='cancelled' && requestedStatus!==e.status){
+      return res.status(403).json({message:'Organizers cannot change moderation status. Submit the event for review instead.'});
+    }
+    if(req.user.role==='organizer' && requestedStatus==='published' && process.env.REQUIRE_EVENT_APPROVAL==='true'){
+      return res.status(403).json({message:'This event requires admin approval before publishing'});
+    }
 
     Object.assign(e,changes);
     if(requestedStatus)e.status=requestedStatus;
+    if(req.user.role==='organizer' && !requestedStatus && e.status==='published' && process.env.REQUIRE_EVENT_APPROVAL==='true'){
+      e.status='pending';
+    }
     await e.save();
 
     if(requestedStatus==='cancelled'){

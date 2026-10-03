@@ -110,7 +110,9 @@ function makeDemoPaymentId() {
 router.post('/order', auth, async (req, res) => {
   try {
     const event = await Event.findById(req.body.eventId);
-    const quantity = Math.max(1, Math.min(10, Number(req.body.quantity || 1)));
+    const requestedQuantity = Number(req.body.quantity || 1);
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 10) return res.status(400).json({ message: 'Quantity must be a whole number between 1 and 10' });
+    const quantity = requestedQuantity;
 
     if (!event || event.status !== 'published') {
       return res.status(404).json({ message: 'Event not available' });
@@ -188,24 +190,28 @@ router.post('/demo-pay', auth, async (req, res) => {
       return res.status(400).json({ message: 'Choose a valid demo payment method' });
     }
 
-    const order = await Order.findOne({ _id: orderDbId, userId: req.user._id });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.status === 'paid') {
-      const existing = await Ticket.find({ orderId: order._id });
-      return res.json({
-        ok: true,
-        demo: true,
-        alreadyPaid: true,
-        paymentId: order.providerPaymentId,
-        tickets: existing.map(t => ({ id: t._id.toString(), ticketCode: t.ticketCode }))
-      });
+    const existingOrder = await Order.findOne({ _id: orderDbId, userId: req.user._id }).lean();
+    if (!existingOrder) return res.status(404).json({ message: 'Order not found' });
+    if (existingOrder.status === 'paid') {
+      const existing = await Ticket.find({ orderId: existingOrder._id });
+      return res.json({ ok:true, demo:true, alreadyPaid:true, paymentId:existingOrder.providerPaymentId, tickets:existing.map(t=>({id:t._id.toString(),ticketCode:t.ticketCode})) });
     }
+    if (existingOrder.status === 'processing') return res.status(409).json({ message: 'This payment is already being processed' });
+    if (existingOrder.amount <= 0) return res.status(400).json({ message: 'This order is free' });
 
-    if (order.amount <= 0) return res.status(400).json({ message: 'This order is free' });
-
-    order.providerPaymentId = makeDemoPaymentId();
-    order.demoPaymentMethod = paymentMethod;
-    const tickets = await issueTickets(order);
+    const order = await Order.findOneAndUpdate(
+      { _id: orderDbId, userId: req.user._id, status: 'created' },
+      { $set: { status: 'processing', providerPaymentId: makeDemoPaymentId(), demoPaymentMethod: paymentMethod } },
+      { new: true }
+    );
+    if (!order) return res.status(409).json({ message: 'This order is already being processed' });
+    let tickets;
+    try {
+      tickets = await issueTickets(order);
+    } catch (error) {
+      await Order.updateOne({ _id: order._id, status: 'processing' }, { $set: { status: 'created' } });
+      throw error;
+    }
 
     res.json({
       ok: true,

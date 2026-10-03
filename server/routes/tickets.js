@@ -7,7 +7,7 @@ const {auth,role}=require('../middleware/auth');
 const {signature,safeEqual}=require('../utils/ticket');
 const {buildTicketPdf}=require('../utils/ticket-pdf');
 
-function isValid(t,s){return !!t&&t.status==='valid'&&safeEqual(s||'',signature(t.ticketCode,t.userId,t.eventId))}
+function isValid(t,s){return !!t&&['valid','used'].includes(t.status)&&safeEqual(s||'',signature(t.ticketCode,t.userId,t.eventId))}
 
 router.get('/mine',auth,async(req,res)=>res.json((await Ticket.find({userId:req.user._id}).sort({createdAt:-1}).lean()).map(t=>({...t,id:t._id.toString()}))));
 
@@ -29,7 +29,7 @@ router.get('/:id/qr',auth,role('organizer','admin'),async(req,res)=>{
     const verificationUrl=`${base}/verify/${encodeURIComponent(t.ticketCode)}?sig=${encodeURIComponent(t.verificationSig)}`;
     const dataUrl=await QR.toDataURL(verificationUrl,{width:320,margin:2,errorCorrectionLevel:'H'});
     res.json({ticketCode:t.ticketCode,status:t.status,verificationUrl,dataUrl});
-  }catch(err){res.status(500).json({message:err.message||'Could not generate QR'})}
+  }catch{res.status(500).json({message:'Could not generate QR'})}
 });
 
 router.get('/:id/download',auth,async(req,res)=>{
@@ -41,7 +41,7 @@ router.get('/:id/download',auth,async(req,res)=>{
     res.setHeader('Content-Type','application/pdf');
     res.setHeader('Content-Disposition',`attachment; filename="${t.ticketCode}.pdf"`);
     res.send(pdf);
-  }catch(err){res.status(500).json({message:err.message||'Could not generate ticket PDF'})}
+  }catch{res.status(500).json({message:'Could not generate ticket PDF'})}
 });
 
 router.post('/:id/email',auth,async(req,res)=>{
@@ -69,7 +69,7 @@ router.post('/:id/email',auth,async(req,res)=>{
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(data.message||'Email provider rejected the message');
     res.json({ok:true,message:`Ticket emailed to ${user.email}`});
-  }catch(err){res.status(502).json({message:err.message||'Could not email ticket'})}
+  }catch{res.status(502).json({message:'Could not email ticket'})}
 });
 
 router.get('/verify/:code',async(req,res)=>{const t=await Ticket.findOne({ticketCode:req.params.code}).lean();const ok=isValid(t,req.query.sig);res.json({valid:ok,status:!t?'NOT_FOUND':!ok?'INVALID':t.status.toUpperCase(),ticket:ok?{ticketCode:t.ticketCode,event:t.eventSnapshot,ticketType:t.ticketType,checkedInAt:t.checkedInAt||null}:null})});
@@ -77,9 +77,13 @@ router.get('/verify/:code',async(req,res)=>{const t=await Ticket.findOne({ticket
 router.post('/:id/checkin',auth,role('organizer','admin'),async(req,res)=>{
   const t=await Ticket.findById(req.params.id);if(!t)return res.status(404).json({message:'Ticket not found'});
   const e=await Event.findById(t.eventId);if(req.user.role==='organizer'&&(!e||String(e.organizerId)!==String(req.user._id)))return res.status(403).json({message:'You do not manage this event'});
-  if(t.status!=='valid')return res.status(409).json({message:`Ticket is ${t.status}`});
-  t.status='used';t.checkedInAt=new Date();t.checkedInBy=req.user._id;await t.save();
-  res.json({ok:true,message:'Ticket checked in',ticket:{id:t._id.toString(),status:t.status,checkedInAt:t.checkedInAt}})
+  const updated=await Ticket.findOneAndUpdate(
+    {_id:t._id,status:'valid'},
+    {$set:{status:'used',checkedInAt:new Date(),checkedInBy:req.user._id}},
+    {new:true}
+  );
+  if(!updated)return res.status(409).json({message:'Ticket has already been checked in or is no longer valid'});
+  res.json({ok:true,message:'Ticket checked in',ticket:{id:updated._id.toString(),status:updated.status,checkedInAt:updated.checkedInAt}})
 });
 
 module.exports=router;

@@ -10,6 +10,16 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const cloudinaryReady = () =>
   process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
 
+
+function hasValidImageSignature(buffer, mime) {
+  if (!Buffer.isBuffer(buffer)) return false;
+  if (mime === 'image/jpeg') return buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mime === 'image/png') return buffer.length > 8 && buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  if (mime === 'image/gif') return buffer.subarray(0, 6).toString('ascii') === 'GIF87a' || buffer.subarray(0, 6).toString('ascii') === 'GIF89a';
+  if (mime === 'image/webp') return buffer.length > 12 && buffer.subarray(0,4).toString('ascii') === 'RIFF' && buffer.subarray(8,12).toString('ascii') === 'WEBP';
+  return false;
+}
+
 const multerUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -38,6 +48,7 @@ exports.handleImageUpload = (req, res, next) => {
     if (err) return next(err.code === 'LIMIT_FILE_SIZE' ? new ApiError(400, 'Image must be smaller than 5 MB') : err);
     if (!req.file) return next();
     try {
+      if (!hasValidImageSignature(req.file.buffer, req.file.mimetype)) return next(new ApiError(400, 'Invalid image file'));
       if (cloudinaryReady()) {
         req.body.image = await sendToCloudinary(req.file.buffer);
       } else {
@@ -48,7 +59,7 @@ exports.handleImageUpload = (req, res, next) => {
       }
       next();
     } catch (e) {
-      next(new ApiError(500, 'Image upload failed: ' + e.message));
+      next(new ApiError(500, 'Image upload failed'));
     }
   });
 };

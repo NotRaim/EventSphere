@@ -229,3 +229,22 @@ EventSphere/
 ├── .env.example
 └── .gitignore
 ```
+
+## Stage 4 management workspace
+
+Organizers and admins receive a role-aware **Manage events** header option. The workspace supports:
+- Editing event details with server-side ownership checks.
+- Cancelling an event; valid tickets are cancelled and ticket holders receive database notifications.
+- Event-specific ticket operations and check-in without leaving the management workspace.
+- Generating each ticket's signed verification QR code from the management workspace.
+- Admin access to every event; organizers only see events they own.
+- Responsive layouts with collision-safe grids, modal layers, focus states and reduced-motion fallbacks.
+
+## Mobile UI + Profile + Admin Contact refinement
+
+- Mobile navigation is role-aware without duplicate links and includes a compact account identity block.
+- Event cards become a swipeable horizontal rail on phone widths only; desktop keeps the 3-column event grid.
+- Profile is available to every authenticated role and supports editing name, phone and bio plus discovery preferences.
+- Contact Admin is available from the mobile account menu, profile page, footer and direct `/contact-admin.html` page.
+- Contact messages are stored in MongoDB and admins can review the latest support messages from the Admin control center.
+- Mobile layout includes collision-safe spacing, capped navigation height, horizontal filter scrolling, stacked forms and reduced-motion support.
