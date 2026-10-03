@@ -81,6 +81,48 @@ app.use(
     })
 );
 
+/* =========================================================
+   NETLIFY / SERVERLESS BODY NORMALIZATION
+
+   serverless-http can expose JSON request bodies as Buffers.
+   Convert normal API bodies into plain JavaScript objects.
+
+   IMPORTANT:
+   Keep the Razorpay webhook raw because it requires
+   the original raw request body.
+========================================================= */
+
+app.use((req, res, next) => {
+    // Never modify the raw payment webhook body.
+    if (req.path === '/api/payments/webhook') {
+        return next();
+    }
+
+    let body = req.body;
+
+    if (Buffer.isBuffer(body)) {
+        body = body.toString('utf8');
+    }
+
+    if (typeof body === 'string' && body.trim()) {
+        try {
+            body = JSON.parse(body);
+        } catch {
+            // Leave non-JSON body alone.
+        }
+    }
+
+    if (
+        body &&
+        typeof body === 'object' &&
+        !Buffer.isBuffer(body)
+    ) {
+        req.body = body;
+    }
+
+    next();
+});
+
 
 /* =========================================================
    API HEALTH CHECK
