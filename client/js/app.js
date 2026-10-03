@@ -245,11 +245,15 @@ const ES = (() => {
         const manageLink=['organizer','admin'].includes(role)
           ? `<a class="btn btn-ghost desktop-action manage-nav-link" href="manage-events.html">Manage events</a>`
           : '';
+        const checkinLink=['organizer','admin'].includes(role)
+          ? `<a class="btn btn-ghost desktop-action checkin-nav-link" href="checkin.html">Check-in & QR</a>`
+          : '';
 
         // Do NOT add another My plans button here — it already exists
         // in the main navigation.
         authArea.innerHTML=`
           ${manageLink}
+          ${checkinLink}
           <div class="dropdown notification-dropdown">
             <button class="btn btn-ghost desktop-action notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
               <span aria-hidden="true">🔔</span>
@@ -325,7 +329,7 @@ const ES = (() => {
             </div>
             <div class="mobile-auth-links">
               ${['organizer','admin'].includes(role)
-                ? '<a href="manage-events.html"><span>Manage events</span><small>Events, check-in & QR</small></a>'
+                ? '<a href="manage-events.html"><span>Manage events</span><small>Your events & operations</small></a><a href="checkin.html"><span>Check-in & QR</span><small>Scan or enter ticket code</small></a>'
                 : ''}
               <button class="mobile-notification-toggle" type="button" data-mobile-notifications>
                 <span><span>Notifications</span><small>Updates & booking alerts</small></span>
@@ -543,7 +547,7 @@ const ES = (() => {
   async function remoteProfile(data){ const r=await api('/me/profile',{method:'PUT',body:data}); const token=session.getToken(); if(token) session.set(token,r.user,true); return r.user; }
   function categoryClass(category){return 'ticket-'+String(category||'community').toLowerCase().replace(/[^a-z]/g,'')}
 
-  return {API,demo,session,api,events,esc,date,time,img,imageFileToDataUrl,imageFilesToDataUrls,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
+  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
 
 })();
 

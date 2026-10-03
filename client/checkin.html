@@ -1,22 +1,55 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Check-in — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Check-in & QR — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
 <header class="site-nav"><a class="brand" href="index.html"><img class="brand-logo" src="assets/eventsphere-logo.svg" alt="EventSphere"><span class="brand-name">EventSphere</span></a><nav class="nav-links"><a href="index.html">Home</a><a href="events.html">Discover</a><a class="active" href="manage-events.html">Manage events</a><a href="dashboard.html">My plans</a></nav><div class="nav-actions"><button class="nav-toggle" data-menu aria-label="Open menu">☰</button></div></header>
 <div class="mobile-panel"><a href="index.html">Home</a><a href="events.html">Discover events</a><a href="manage-events.html">Manage events</a><a href="organizer.html">Create event</a><a href="dashboard.html">My plans</a><a href="tickets.html">My tickets</a><a href="profile.html">Profile</a></div>
-<main class="dashboard-page"><div class="container"><div class="dash-top reveal"><div><div class="section-kicker">Door check-in</div><h1 class="section-title">Verify every<br><span style="color:var(--cyan)">ticket.</span></h1><p class="section-copy">Scan a QR code or enter a ticket code. A ticket is accepted only when its signed code exists in MongoDB and is still valid.</p></div></div>
-<section class="glass-panel panel checkin-box reveal">
-  <div class="field"><label>Ticket code</label><input id="ticket-code" placeholder="ES-XXXXXXXXXXXXXXX" autocomplete="off"></div>
-  <div class="toolbar"><button class="btn btn-cyan" id="verify-ticket" type="button">Verify & check in</button><button class="btn btn-ghost" id="start-scanner" type="button">Scan QR with camera</button></div>
-  <div id="scanner-wrap" class="qr-scanner-wrap" hidden><video id="qr-video" playsinline muted></video><div class="qr-scanner-frame"></div><p id="scanner-note" class="muted">Point the camera at the ticket QR code.</p><button class="btn btn-small btn-ghost" id="stop-scanner" type="button">Stop camera</button></div>
-  <div id="checkin-result" class="muted" style="margin-top:18px"></div>
-</section></div></main><div id="toasts"></div>
+<main class="dashboard-page"><div class="container">
+  <div class="dash-top reveal"><div><div class="section-kicker">Organizer tools · Door check-in</div><h1 class="section-title">Check in<br><span style="color:var(--cyan)">every ticket.</span></h1><p class="section-copy">Scan the ticket QR with your camera, or enter the ticket code manually. Only organizers and admins can use this tool.</p></div></div>
+  <section class="glass-panel panel checkin-box reveal" style="display:block;text-align:left">
+    <div class="section-head"><div><div class="section-kicker">Fast entry</div><h2>Scan or enter</h2></div><span class="pill">Organizer / Admin</span></div>
+    <div class="checkin-actions"><button class="btn btn-cyan" id="start-scanner" type="button">▣ Scan QR with camera</button><button class="btn btn-ghost" id="verify-ticket" type="button">Verify ticket code</button></div>
+    <div id="scanner-wrap" class="qr-scanner-wrap" hidden><video id="qr-video" playsinline muted></video><div class="qr-scanner-frame"></div><div class="scanner-overlay"><span>ALIGN QR INSIDE FRAME</span></div><p id="scanner-note" class="muted">Point the camera at the attendee's ticket QR code.</p><button class="btn btn-small btn-ghost" id="stop-scanner" type="button">Stop camera</button></div>
+    <div class="field" style="margin-top:16px"><label for="ticket-code">Ticket code</label><input id="ticket-code" placeholder="ES-XXXXXXXXXXXXXXX" autocomplete="off" inputmode="text"></div>
+    <div id="checkin-result" class="checkin-result muted" aria-live="polite">Ready to check in a ticket.</div>
+  </section>
+</div></main><div id="toasts"></div>
 <script src="js/app.js"></script><script>
 document.addEventListener('DOMContentLoaded',()=>{
- const u=ES.guard();if(!u||!['organizer','admin'].includes(u.role))return;
- const code=document.querySelector('#ticket-code'),out=document.querySelector('#checkin-result'),video=document.querySelector('#qr-video'),wrap=document.querySelector('#scanner-wrap'),start=document.querySelector('#start-scanner'),stop=document.querySelector('#stop-scanner'),note=document.querySelector('#scanner-note');
- let stream=null,detector=null,running=false;
- async function check(){const value=code.value.trim();if(!value){out.textContent='Enter a ticket code or scan a QR code.';return}try{out.textContent='Checking…';const r=await ES.api('/tickets/verify/'+encodeURIComponent(value),{auth:false});if(!r.valid){out.textContent='Invalid, cancelled, or already used ticket.';ES.toast('Ticket is not valid','error');return}const list=await ES.api('/tickets/organizer');const found=list.find(t=>t.ticketCode===value);if(!found){out.textContent='This ticket is valid, but it is not assigned to an event you manage.';return}await ES.api('/tickets/'+found.id+'/checkin',{method:'POST'});out.innerHTML='<strong class="success-text">✓ CHECKED IN</strong><br>'+ES.esc(r.ticket.event.title)+'<br>'+ES.esc(r.ticket.ticketCode);ES.toast('Ticket checked in ✓','success')}catch(err){out.textContent=err.message;ES.toast(err.message,'error')}}
- document.querySelector('#verify-ticket').onclick=check;code.addEventListener('keydown',e=>{if(e.key==='Enter')check()});
- async function stop(){running=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}wrap.hidden=true;video.srcObject=null;}
- stop.onclick=stop;
- start.onclick=async()=>{try{if(!('BarcodeDetector' in window)){note.textContent='QR camera scanning is not supported in this browser. Use the ticket code field instead.';wrap.hidden=false;return}detector=new BarcodeDetector({formats:['qr_code']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});video.srcObject=stream;await video.play();wrap.hidden=false;running=true;const scan=async()=>{if(!running)return;try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){code.value=codes[0].rawValue.split('/verify/')[1]?.split('?')[0]||codes[0].rawValue;await stop();await check();return}}catch{}requestAnimationFrame(scan)};scan()}catch(err){note.textContent='Camera permission was blocked. Enter the ticket code manually.';wrap.hidden=false;ES.toast('Camera access unavailable','error')}};
- window.addEventListener('beforeunload',stop);
-});</script><button class="back-button" type="button" data-back>← Back</button></body></html>
+  const u=ES.guard();
+  if(!u||!['organizer','admin'].includes(u.role))return;
+  const code=document.querySelector('#ticket-code'),out=document.querySelector('#checkin-result'),video=document.querySelector('#qr-video'),wrap=document.querySelector('#scanner-wrap'),start=document.querySelector('#start-scanner'),stop=document.querySelector('#stop-scanner'),note=document.querySelector('#scanner-note');
+  let stream=null,detector=null,running=false;
+  const result=(type,title,detail)=>{out.className='checkin-result '+type;out.innerHTML='<strong>'+title+'</strong><span>'+detail+'</span>'};
+  async function check(){
+    const value=code.value.trim();
+    if(!value){result('checkin-warning','Ticket code required','Scan a QR code or enter the ticket code.');return;}
+    try{
+      result('checkin-loading','Checking ticket…','Verifying the signed ticket against EventSphere.');
+      const r=await ES.api('/tickets/verify/'+encodeURIComponent(value),{auth:false});
+      if(!r.valid){result('checkin-error','✕ Ticket not valid','The ticket is invalid, cancelled, or already checked in.');ES.toast('Ticket is not valid','error');return;}
+      const list=await ES.api('/tickets/organizer');
+      const found=list.find(t=>String(t.ticketCode)===String(value));
+      if(!found){result('checkin-error','⚠ Not your event','This ticket is valid, but it is not assigned to an event you manage.');return;}
+      const updated=await ES.api('/tickets/'+found.id+'/checkin',{method:'POST'});
+      const eventTitle=r.ticket?.event?.title||'Event';
+      result('checkin-success','✓ CHECKED IN',ES.esc(eventTitle)+' · '+ES.esc(value)+(updated.ticket?.checkedInAt?' · Entry confirmed':''));
+      code.value='';
+      ES.toast('Ticket checked in ✓','success');
+    }catch(err){result('checkin-error','✕ Check-in failed',ES.esc(err.message||'Please try again.'));ES.toast(err.message||'Check-in failed','error')}
+  }
+  document.querySelector('#verify-ticket').onclick=check;
+  code.addEventListener('keydown',e=>{if(e.key==='Enter')check()});
+  async function stop(){running=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}wrap.hidden=true;video.srcObject=null}
+  stop.onclick=stop;
+  start.onclick=async()=>{
+    try{
+      if(!('BarcodeDetector' in window)){note.textContent='This browser does not provide QR camera scanning. Use the ticket code field below.';wrap.hidden=false;ES.toast('QR camera scanning is not supported here','error');return}
+      if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera access is unavailable in this browser.');
+      detector=new BarcodeDetector({formats:['qr_code']});
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      video.srcObject=stream;await video.play();wrap.hidden=false;running=true;note.textContent='Point the camera at the QR code.';
+      const scan=async()=>{if(!running)return;try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){const raw=codes[0].rawValue.trim();code.value=raw.includes('/verify/')?decodeURIComponent(raw.split('/verify/')[1]?.split('?')[0]||raw):raw;await stop();await check();return}}catch{}requestAnimationFrame(scan)};
+      scan();
+    }catch(err){note.textContent='Camera permission was blocked. Enter the ticket code manually.';wrap.hidden=false;ES.toast('Camera access unavailable','error')}
+  };
+  window.addEventListener('beforeunload',stop);
+});
+</script><button class="back-button" type="button" data-back>← Back</button></body></html>
