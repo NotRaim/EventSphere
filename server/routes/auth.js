@@ -223,6 +223,13 @@ router.post('/login', async (req, res) => {
         const u = await User.findOne({
             email
         });
+        console.log('LOGIN USER CHECK:', {
+    email,
+    userFound: !!u,
+    hasPasswordHash: !!u?.passwordHash,
+    passwordHashLength: u?.passwordHash?.length || 0,
+    role: u?.role || null
+});
 
 
         if (
