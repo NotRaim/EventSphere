@@ -1,7 +1,7 @@
 
 document.addEventListener('DOMContentLoaded',async()=>{
   const grid=document.querySelector('#featured-events'); if(!grid)return;
-  const list=(await ES.events()).slice(0,6);
+  const list=(await ES.events()).filter(e=>!ES.registrationDeadlinePassed(e)).slice(0,6);
   grid.innerHTML=list.map(renderEventCard).join('');
   grid.querySelectorAll('.reveal').forEach(x=>x.classList.add('visible'));
   activateCards(grid);

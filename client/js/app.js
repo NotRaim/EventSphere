@@ -128,12 +128,61 @@ const ES = (() => {
 
   // Authentication-aware header.
   // Every page gets the same navigation state from the current session.
+  // Authentication-aware header.
+  // The static nav already contains Home / Discover / My plans.
+  // We only change the role-sensitive links here so users never see
+  // organizer-only navigation by accident and My plans is not duplicated.
   function hydrateHeader(){
     const user=session.getUser();
+    const loggedIn=!!(user && session.getToken());
+
     document.querySelectorAll('.site-nav').forEach(nav=>{
+      const links=nav.querySelector('.nav-links');
       const actions=nav.querySelector('.nav-actions');
       if(!actions) return;
 
+      // ------------------------------------------------------
+      // ROLE-BASED MAIN NAVIGATION
+      // ------------------------------------------------------
+      if(links){
+        const createLinks=[
+          ...links.querySelectorAll('a[href="organizer.html"]')
+        ];
+        const myPlanLinks=[
+          ...links.querySelectorAll('a[href="dashboard.html"]')
+        ];
+
+        // Only organizers/admins should see Create event.
+        const canCreate=loggedIn && ['organizer','admin'].includes(user.role);
+        createLinks.forEach(a=>{
+          a.hidden=!canCreate;
+          a.setAttribute('aria-hidden',String(!canCreate));
+        });
+
+        // Keep exactly one My plans link in the main nav.
+        if(myPlanLinks.length){
+          const role=user?.role||'user';
+          const destination=role==='admin'
+            ? 'admin.html'
+            : role==='organizer'
+              ? 'organizer.html'
+              : 'dashboard.html';
+
+          const first=myPlanLinks[0];
+          first.href=destination;
+          first.textContent=role==='admin'
+            ? 'Admin'
+            : role==='organizer'
+              ? 'Organizer'
+              : 'My plans';
+
+          myPlanLinks.slice(1).forEach(a=>a.remove());
+        }
+      }
+
+      // ------------------------------------------------------
+      // RIGHT-SIDE ACTIONS
+      // ------------------------------------------------------
       let authArea=actions.querySelector('[data-auth-area]');
       if(!authArea){
         authArea=document.createElement('div');
@@ -142,16 +191,16 @@ const ES = (() => {
         actions.insertBefore(authArea, actions.querySelector('[data-menu]'));
       }
 
-      if(user && session.getToken()){
+      if(loggedIn){
         const role=user.role||'user';
-        const destination=role==='admin'?'admin.html':role==='organizer'?'organizer.html':'dashboard.html';
-        const label=role==='admin'?'Admin':role==='organizer'?'Organizer':'My plans';
         const manageLink=['organizer','admin'].includes(role)
           ? `<a class="btn btn-ghost desktop-action manage-nav-link" href="manage-events.html">Manage events</a>`
           : '';
+
+        // Do NOT add another My plans button here — it already exists
+        // in the main navigation.
         authArea.innerHTML=`
           ${manageLink}
-          <a class="btn btn-ghost desktop-action auth-dashboard" href="${destination}">${label}</a>
           <a class="btn btn-ghost desktop-action profile-nav-link" href="profile.html">Profile</a>
           <a class="btn btn-ghost desktop-action contact-nav-link" href="contact-admin.html">Help</a>
           <button class="btn btn-cyan desktop-action auth-logout" type="button">Log out</button>
@@ -163,27 +212,69 @@ const ES = (() => {
         `;
       }
 
+      // ------------------------------------------------------
+      // MOBILE NAVIGATION
+      // ------------------------------------------------------
       const panel=document.querySelector('.mobile-panel');
       if(panel){
         panel.querySelectorAll('[data-auth-mobile]').forEach(x=>x.remove());
+
+        // Hide organizer-only mobile links for guests/normal users.
+        panel.querySelectorAll('a[href="organizer.html"]').forEach(a=>{
+          a.hidden=!(loggedIn && ['organizer','admin'].includes(user.role));
+        });
+
+        // Prevent duplicate My plans links in the mobile panel.
+        const mobilePlans=[...panel.querySelectorAll('a[href="dashboard.html"]')];
+        if(mobilePlans.length){
+          const role=user?.role||'user';
+          const destination=role==='admin'
+            ? 'admin.html'
+            : role==='organizer'
+              ? 'organizer.html'
+              : 'dashboard.html';
+          mobilePlans[0].href=destination;
+          mobilePlans[0].textContent=role==='admin'
+            ? 'Admin'
+            : role==='organizer'
+              ? 'Organizer'
+              : 'My plans';
+          mobilePlans.slice(1).forEach(a=>a.remove());
+        }
+
         const wrap=document.createElement('div');
         wrap.dataset.authMobile='true';
-        if(user && session.getToken()){
+
+        if(loggedIn){
           const role=user.role||'user';
-          const destination=role==='admin'?'admin.html':role==='organizer'?'organizer.html':'dashboard.html';
-          wrap.innerHTML=`<div class="mobile-user-card"><span class="mobile-user-avatar">${esc((user.name||user.email||'E').slice(0,1).toUpperCase())}</span><div><strong>${esc(user.name||'EventSphere member')}</strong><small>${esc(role)}</small></div></div>
-          <div class="mobile-auth-links">
-            ${['organizer','admin'].includes(role)?'<a href="manage-events.html"><span>Manage events</span><small>Events, check-in & QR</small></a>':''}
-            <a href="${destination}"><span>${role==='admin'?'Admin control center':role==='organizer'?'Organizer studio':'My plans'}</span><small>Dashboard & activity</small></a>
-            <a href="tickets.html"><span>My tickets</span><small>Passes & verification</small></a>
-            <a href="saved.html"><span>Saved plans</span><small>Your shortlist</small></a>
-            <a href="profile.html"><span>Profile</span><small>Edit your details</small></a>
-            <a href="contact-admin.html"><span>Contact admin</span><small>Get help or report an issue</small></a>
-          </div>
-          <button class="mobile-logout" type="button">Log out</button>`;
+          const destination=role==='admin'
+            ? 'admin.html'
+            : role==='organizer'
+              ? 'organizer.html'
+              : 'dashboard.html';
+
+          wrap.innerHTML=`
+            <div class="mobile-user-card">
+              <span class="mobile-user-avatar">${esc((user.name||user.email||'E').slice(0,1).toUpperCase())}</span>
+              <div>
+                <strong>${esc(user.name||'EventSphere member')}</strong>
+                <small>${esc(role)}</small>
+              </div>
+            </div>
+            <div class="mobile-auth-links">
+              ${['organizer','admin'].includes(role)
+                ? '<a href="manage-events.html"><span>Manage events</span><small>Events, check-in & QR</small></a>'
+                : ''}
+              <a href="tickets.html"><span>My tickets</span><small>Passes & verification</small></a>
+              <a href="saved.html"><span>Saved plans</span><small>Your shortlist</small></a>
+              <a href="profile.html"><span>Profile</span><small>Edit your details</small></a>
+              <a href="contact-admin.html"><span>Contact admin</span><small>Get help or report an issue</small></a>
+            </div>
+            <button class="mobile-logout" type="button">Log out</button>`;
         }else{
           wrap.innerHTML=`<a href="login.html">Log in</a><a href="register.html">Join EventSphere</a>`;
         }
+
         panel.appendChild(wrap);
       }
 
@@ -192,11 +283,34 @@ const ES = (() => {
         toast('You have been logged out','success');
         setTimeout(()=>location.href='index.html',220);
       });
+
       panel?.querySelector('.mobile-logout')?.addEventListener('click',()=>{
         session.clear();
         location.href='index.html';
       });
     });
+  }
+
+  // ----------------------------------------------------------
+  // EVENT AVAILABILITY / TICKET SALES DEADLINE
+  // ----------------------------------------------------------
+
+  // Registration deadline is inclusive through 11:59:59 PM.
+  // If no registration deadline exists, the event remains bookable
+  // until the event starts.
+  function registrationDeadlinePassed(event){
+    if(!event) return true;
+
+    const deadline=String(event.registrationDeadline||'').trim();
+    const cutoff=deadline
+      ? new Date(`${deadline.slice(0,10)}T23:59:59`)
+      : new Date(`${String(event.date).slice(0,10)}T${event.time||'00:00'}:00`);
+
+    return Number.isNaN(cutoff.getTime()) || cutoff < new Date();
+  }
+
+  function isEventBookable(event){
+    return !registrationDeadlinePassed(event) && seats(event)>0;
   }
 
 
@@ -211,7 +325,7 @@ const ES = (() => {
   async function remoteProfile(data){ const r=await api('/me/profile',{method:'PUT',body:data}); const token=session.getToken(); if(token) session.set(token,r.user,true); return r.user; }
   function categoryClass(category){return 'ticket-'+String(category||'community').toLowerCase().replace(/[^a-z]/g,'')}
 
-  return {API,demo,session,api,events,esc,date,time,img,seats,toast,logout,guard,hydrateHeader,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
+  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
 
 })();
 

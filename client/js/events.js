@@ -1,7 +1,7 @@
 
 document.addEventListener('DOMContentLoaded',async()=>{
   const grid=document.querySelector('#events-grid'),search=document.querySelector('#event-search');
-  const all=await ES.events();let cat='All', sort='date';
+  const all=(await ES.events()).filter(e=>!ES.registrationDeadlinePassed(e));let cat='All', sort='date';
   function draw(){
     const q=(search.value||'').trim().toLowerCase();
     const city=(document.querySelector('#city-filter')?.value||'').trim().toLowerCase();

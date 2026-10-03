@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const isDatabaseEvent = /^[a-f0-9]{24}$/i.test(String(e.id));
+  const salesClosed = ES.registrationDeadlinePassed(e);
+  const soldOut = ES.seats(e) <= 0;
   const agenda = [
     ['18:30', 'Doors open & check-in'],
     ['19:00', 'Welcome + community introductions'],
@@ -88,8 +90,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="section-kicker">Your place</div>
       <div class="booking-price">${Number(e.price || 0) === 0 ? 'Free' : '₹' + Number(e.price).toLocaleString('en-IN')}</div>
       <p class="muted">${ES.seats(e)} places currently available.</p>
+      ${salesClosed ? '<div class="glass-panel panel" style="margin:14px 0;padding:14px;border-color:rgba(255,110,134,.35)"><strong style="color:#ff6e86">Ticket sales closed</strong><p class="muted" style="margin:5px 0 0">The buying deadline for this event has passed.</p></div>' : ''}
+      ${!salesClosed && soldOut ? '<div class="glass-panel panel" style="margin:14px 0;padding:14px"><strong>Sold out</strong><p class="muted" style="margin:5px 0 0">No tickets are currently available.</p></div>' : ''}
       <div class="countdown" id="countdown"><div><strong>--</strong><span>Days</span></div><div><strong>--</strong><span>Hours</span></div><div><strong>--</strong><span>Min</span></div></div>
-      <button class="btn btn-cyan" style="width:100%" id="reserve" data-magnetic type="button">Reserve my place</button>
+      <button class="btn ${salesClosed || soldOut ? 'btn-ghost' : 'btn-cyan'}" style="width:100%" id="reserve" data-magnetic type="button" ${salesClosed || soldOut ? 'disabled' : ''}>${salesClosed ? 'Ticket sales closed' : soldOut ? 'Sold out' : 'Reserve my place'}</button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
         <button class="btn btn-ghost" id="save" type="button">${remoteFavs.includes(String(e.id)) ? '♥ Saved' : '♡ Save'}</button>
         <button class="btn btn-ghost" id="share" type="button">Share</button>
@@ -172,6 +176,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!isDatabaseEvent) {
       ES.toast('This preview event is not bookable. Open a published database event.', 'error');
+      return;
+    }
+
+    if (ES.registrationDeadlinePassed(e)) {
+      ES.toast('Ticket buying deadline is over for this event.', 'error');
       return;
     }
 
