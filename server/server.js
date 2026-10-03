@@ -521,13 +521,22 @@ app.use(
    DATABASE / ADMIN INITIALIZATION
 ========================================================= */
 
+let adminInitPromise = null;
+
 async function ensureAdmin() {
-    if (adminInitPromise) return adminInitPromise;
+    if (adminInitPromise) {
+        return adminInitPromise;
+    }
 
     adminInitPromise = (async () => {
         const User = require('./models/User');
         const bcrypt = require('bcryptjs');
 
+        /*
+         * Admin creation is optional.
+         * If ADMIN_EMAIL / ADMIN_PASSWORD are not configured,
+         * do nothing.
+         */
         if (
             !process.env.ADMIN_EMAIL ||
             !process.env.ADMIN_PASSWORD
@@ -536,90 +545,70 @@ async function ensureAdmin() {
         }
 
         const adminEmail =
-            process.env.ADMIN_EMAIL
-                .toLowerCase()
-                .trim();
+            String(process.env.ADMIN_EMAIL)
+                .trim()
+                .toLowerCase();
 
-        const adminPassword =
-            String(process.env.ADMIN_PASSWORD);
-
-        let admin = await User.findOne({
+        /*
+         * IMPORTANT:
+         * Do not convert an existing normal user into an admin.
+         */
+        const existingUser = await User.findOne({
             email: adminEmail
         });
 
-        /* =====================================================
-           CREATE ADMIN IF IT DOES NOT EXIST
-        ===================================================== */
-
-        if (!admin) {
-            const passwordHash =
-                await bcrypt.hash(
-                    adminPassword,
-                    12
+        if (existingUser) {
+            if (existingUser.role !== 'admin') {
+                console.log(
+                    `ℹ️ ADMIN_EMAIL belongs to an existing ${existingUser.role} account.`
                 );
-
-            admin = await User.create({
-                name:
-                    process.env.ADMIN_NAME ||
-                    'EventAdmin',
-
-                email: adminEmail,
-
-                passwordHash,
-
-                role: 'admin',
-
-                status: 'active'
-            });
-
-            console.log(
-                `✅ Admin account created: ${adminEmail}`
-            );
+                console.log(
+                    'ℹ️ Existing account was NOT modified.'
+                );
+            }
 
             return;
         }
 
+        /*
+         * Create the admin only when the admin email
+         * does not already exist.
+         */
+        const passwordHash = await bcrypt.hash(
+            String(process.env.ADMIN_PASSWORD),
+            12
+        );
 
-        /* =====================================================
-           REPAIR EXISTING ADMIN
-        ===================================================== */
+        await User.create({
+            name:
+                process.env.ADMIN_NAME ||
+                'EventSphere Admin',
 
-        let changed = false;
+            email: adminEmail,
 
-        if (!admin.passwordHash) {
-            admin.passwordHash =
-                await bcrypt.hash(
-                    adminPassword,
-                    12
-                );
+            passwordHash,
 
-            changed = true;
+            role: 'admin',
 
-            console.log(
-                `🔧 Admin password hash repaired: ${adminEmail}`
-            );
-        }
+            status: 'active'
+        });
 
-        if (admin.role !== 'admin') {
-            admin.role = 'admin';
-            changed = true;
-        }
+        console.log(
+            `✅ Admin account created: ${adminEmail}`
+        );
 
-        if (admin.status !== 'active') {
-            admin.status = 'active';
-            changed = true;
-        }
-
-        if (changed) {
-            await admin.save();
-
-            console.log(
-                `🔧 Admin account repaired: ${adminEmail}`
-            );
-        }
     })().catch(error => {
         adminInitPromise = null;
-        throw error;
+
+        console.error(
+            '❌ Admin initialization error:',
+            error
+        );
+
+        /*
+         * Do NOT prevent normal users from logging in
+         * because admin initialization failed.
+         */
     });
 
     return adminInitPromise;
