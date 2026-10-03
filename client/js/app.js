@@ -98,6 +98,34 @@ const ES = (() => {
     const all=notifications().map(n=>({...n,read:true}));
     localStorage.setItem('es_notifications',JSON.stringify(all));
   }
+  function notificationTime(value){
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime())) return '';
+    const mins=Math.floor((Date.now()-d.getTime())/60000);
+    if(mins<1)return 'Just now';
+    if(mins<60)return `${mins} min ago`;
+    const hours=Math.floor(mins/60);
+    if(hours<24)return `${hours}h ago`;
+    const days=Math.floor(hours/24);
+    if(days<7)return `${days}d ago`;
+    return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+  }
+  function recommendationScore(event,prefs={}){
+    const interests=prefs.interests||[];
+    const city=String(prefs.city||'').trim().toLowerCase();
+    const mode=prefs.mode||'balanced';
+    let score=0;
+    if(interests.includes(event.category))score+=mode==='saved'?6:5;
+    if(city && String(event.city||'').toLowerCase()===city)score+=mode==='nearby'?6:3;
+    if(savedEvents().includes(String(event.id)))score+=2;
+    if(recentViews().includes(String(event.id)))score+=1;
+    const days=Math.max(0,Math.ceil((new Date(`${String(event.date).slice(0,10)}T${event.time||'23:59'}:00`)-new Date())/86400000));
+    if(days<=14)score+=2;
+    return score;
+  }
+  function recommendEvents(list,prefs={}){
+    return [...list].sort((a,b)=>recommendationScore(b,prefs)-recommendationScore(a,prefs)||new Date(a.date)-new Date(b.date));
+  }
   function profilePrefs(){try{return JSON.parse(localStorage.getItem('es_preferences')||'{}')}catch{return {}}}
   function saveProfilePrefs(prefs){localStorage.setItem('es_preferences',JSON.stringify(prefs||{}));}
   function interests(){return profilePrefs().interests||[]}
@@ -201,6 +229,19 @@ const ES = (() => {
         // in the main navigation.
         authArea.innerHTML=`
           ${manageLink}
+          <div class="dropdown notification-dropdown">
+            <button class="btn btn-dark desktop-action notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
+              <span aria-hidden="true">🔔</span>
+              <span class="notification-dot" data-notification-count hidden>0</span>
+            </button>
+            <div class="dropdown-panel notification-panel" role="dialog" aria-label="Notifications">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+                <strong>Notifications</strong>
+                <button class="btn btn-small btn-ghost" type="button" data-mark-notifications>Mark all read</button>
+              </div>
+              <div data-notification-list><div class="empty">Loading notifications…</div></div>
+            </div>
+          </div>
           <a class="btn btn-ghost desktop-action profile-nav-link" href="profile.html">Profile</a>
           <a class="btn btn-ghost desktop-action contact-nav-link" href="contact-admin.html">Help</a>
           <button class="btn btn-cyan desktop-action auth-logout" type="button">Log out</button>
@@ -265,6 +306,7 @@ const ES = (() => {
               ${['organizer','admin'].includes(role)
                 ? '<a href="manage-events.html"><span>Manage events</span><small>Events, check-in & QR</small></a>'
                 : ''}
+              <a href="dashboard.html#notifications"><span>Notifications</span><small>Updates & booking alerts</small></a>
               <a href="tickets.html"><span>My tickets</span><small>Passes & verification</small></a>
               <a href="saved.html"><span>Saved plans</span><small>Your shortlist</small></a>
               <a href="profile.html"><span>Profile</span><small>Edit your details</small></a>
@@ -288,6 +330,48 @@ const ES = (() => {
         session.clear();
         location.href='index.html';
       });
+    });
+  }
+
+  async function mountNotificationCenter(){
+    const dropdown=document.querySelector('.notification-dropdown');
+    if(!dropdown || !session.getToken()) return;
+    const trigger=dropdown.querySelector('.notification-trigger');
+    const list=dropdown.querySelector('[data-notification-list]');
+    const count=dropdown.querySelector('[data-notification-count]');
+    const mark=dropdown.querySelector('[data-mark-notifications]');
+
+    const draw=(items)=>{
+      const unread=items.filter(n=>!n.read).length;
+      if(count){count.textContent=unread>9?'9+':String(unread);count.hidden=!unread;}
+      if(!list)return;
+      list.innerHTML=items.length
+        ? items.slice(0,6).map(n=>`<button type="button" class="notif ${n.read?'':'unread'}" data-notification-id="${esc(n.id||n._id)}" style="display:block;width:100%;border:0;text-align:left;background:transparent;color:inherit;cursor:pointer"><strong>${esc(n.title||'EventSphere update')}</strong><div class="muted">${esc(n.message||'')}</div><small class="muted">${notificationTime(n.createdAt)}</small></button>`).join('')
+        : '<div class="empty" style="padding:16px 8px">No notifications yet.</div>';
+    };
+
+    try{
+      const items=await remoteNotifications();
+      draw(Array.isArray(items)?items:[]);
+    }catch{draw(notifications())}
+
+    trigger?.addEventListener('click',()=>{
+      trigger.setAttribute('aria-expanded',dropdown.classList.contains('open')?'false':'true');
+    });
+    dropdown.addEventListener('click',async ev=>{
+      const item=ev.target.closest('[data-notification-id]');
+      if(!item)return;
+      const id=item.dataset.notificationId;
+      try{await api('/me/notifications/'+encodeURIComponent(id)+'/read',{method:'POST'});}catch{}
+      item.classList.remove('unread');
+      item.disabled=true;
+      item.style.opacity='.7';
+    });
+    mark?.addEventListener('click',async ev=>{
+      ev.preventDefault();ev.stopPropagation();
+      try{await remoteReadAllNotifications();}catch{}
+      const items=await remoteNotifications().catch(()=>notifications());
+      draw(Array.isArray(items)?items:[]);
     });
   }
 
@@ -325,12 +409,13 @@ const ES = (() => {
   async function remoteProfile(data){ const r=await api('/me/profile',{method:'PUT',body:data}); const token=session.getToken(); if(token) session.set(token,r.user,true); return r.user; }
   function categoryClass(category){return 'ticket-'+String(category||'community').toLowerCase().replace(/[^a-z]/g,'')}
 
-  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
+  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
 
 })();
 
 window.addEventListener('DOMContentLoaded',()=>{
   ES.hydrateHeader();
+  ES.mountNotificationCenter?.();
   // Compact header: hide on scroll down, reveal on scroll up.
   const nav=document.querySelector('.site-nav');
   if(nav){

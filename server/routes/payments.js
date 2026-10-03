@@ -81,6 +81,10 @@ router.post('/order', auth, async (req, res) => {
       return res.status(404).json({ message: 'Event not available' });
     }
 
+    if (event.registrationDeadline && String(event.registrationDeadline) < new Date().toISOString().slice(0, 10)) {
+      return res.status(409).json({ message: 'Ticket sales for this event have closed.' });
+    }
+
     if (event.registeredCount + quantity > event.capacity) {
       return res.status(409).json({ message: 'Not enough seats available' });
     }

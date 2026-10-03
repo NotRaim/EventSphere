@@ -82,9 +82,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div id="tab-venue" hidden>
         <div class="section-kicker">Getting there</div>
         <h2 class="section-title" style="font-size:42px">${ES.esc(e.venue || 'Event venue')}</h2>
-        <p class="section-copy">${ES.esc(e.city || 'Ahmedabad')} · Add this event to your calendar to keep the address handy.</p>
-        <div class="glass-panel panel" style="margin-top:20px;min-height:190px;display:grid;place-items:center;color:#6f7e7e">Map preview · venue location</div>
+        <p class="section-copy">${ES.esc(e.address || e.city || 'Ahmedabad')}</p>
+        ${e.mapUrl ? `<a class="btn btn-cyan" href="${ES.esc(e.mapUrl)}" target="_blank" rel="noopener">Open map ↗</a>` : '<div class="glass-panel panel" style="margin-top:20px;min-height:140px;display:grid;place-items:center;color:#6f7e7e">Map link not provided by organizer.</div>'}
       </div>
+      ${Array.isArray(e.gallery) && e.gallery.length ? `<section class="glass-panel panel reveal" style="margin-top:18px"><div class="section-kicker">Event gallery</div><h3 style="margin:4px 0 14px">A closer look.</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${e.gallery.map(src=>`<img src="${ES.esc(src)}" alt="${ES.esc(e.title)}" loading="lazy" style="width:100%;height:150px;object-fit:cover;border-radius:16px;border:1px solid var(--line)" onerror="this.style.display='none'">`).join('')}</div></section>` : ''}
     </section>
     <aside class="glass-panel booking reveal">
       <div class="section-kicker">Your place</div>
@@ -120,6 +121,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = Math.max(0, target - new Date());
     const vals = [Math.floor(d / 86400000), Math.floor(d / 3600000) % 24, Math.floor(d / 60000) % 60];
     countdown?.querySelectorAll('strong').forEach((x, i) => x.textContent = String(vals[i]).padStart(2, '0'));
+    const label=countdown?.previousElementSibling;
+    if(label && label.classList.contains('section-kicker')) label.textContent=d<=0?'Event time':'Event starts in';
   };
   updateCountdown();
   const timer = setInterval(updateCountdown, 1000);

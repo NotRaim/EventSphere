@@ -5,7 +5,7 @@ const Ticket=require('../models/Ticket');
 const Notification=require('../models/Notification');
 const {auth,role}=require('../middleware/auth');
 
-const editableFields=['title','category','date','time','venue','city','price','capacity','description','image','registrationDeadline','visibility','ticketTypes'];
+const editableFields=['title','category','date','time','venue','city','price','capacity','description','image','address','mapUrl','gallery','registrationDeadline','visibility','ticketTypes'];
 
 function cleanEventBody(body={}){
   const out={};
@@ -17,7 +17,7 @@ function cleanEventBody(body={}){
 
 router.get('/',async(req,res)=>{
   try{
-    const q={status:'published',visibility:'public'};
+    const q={status:'published',visibility:'public',$or:[{registrationDeadline:{$exists:false}},{registrationDeadline:null},{registrationDeadline:''},{registrationDeadline:{$gte:new Date().toISOString().slice(0,10)}}]};
     if(req.query.category)q.category=req.query.category;
     if(req.query.city)q.city=new RegExp(req.query.city,'i');
     const a=await Event.find(q).sort({date:1,createdAt:-1}).lean();
@@ -33,6 +33,25 @@ router.get('/manage/list',auth,role('organizer','admin'),async(req,res)=>{
     res.json(a.map(e=>({...e,id:e._id.toString()})));
   }catch{res.status(500).json({message:'Could not load managed events'})}
 });
+
+router.get('/manage/analytics',auth,role('organizer','admin'),async(req,res)=>{
+  try{
+    const q=req.user.role==='admin'?{}:{organizerId:req.user._id};
+    const events=await Event.find(q).select('title capacity registeredCount views price date status').sort({date:1}).lean();
+    const ids=events.map(e=>e._id);
+    const tickets=await Ticket.find({eventId:{$in:ids}}).select('eventId amountPaid status quantity checkedInAt').lean();
+    const rows=events.map(e=>{
+      const ts=tickets.filter(t=>String(t.eventId)===String(e._id));
+      const sold=ts.reduce((n,t)=>n+Number(t.quantity||1),0);
+      const checked=ts.filter(t=>t.status==='used').reduce((n,t)=>n+Number(t.quantity||1),0);
+      const revenue=ts.filter(t=>['valid','used'].includes(t.status)).reduce((n,t)=>n+Number(t.amountPaid||0),0);
+      return {...e,id:e._id.toString(),sold,checked,revenue};
+    });
+    const totals=rows.reduce((a,r)=>({views:a.views+Number(r.views||0),sold:a.sold+r.sold,checked:a.checked+r.checked,revenue:a.revenue+r.revenue,capacity:a.capacity+Number(r.capacity||0)}),{views:0,sold:0,checked:0,revenue:0,capacity:0});
+    res.json({totals,events:rows});
+  }catch(err){res.status(500).json({message:err.message||'Could not load analytics'})}
+});
+
 
 router.get('/:id',async(req,res)=>{
   try{
@@ -88,6 +107,7 @@ router.patch('/:id',auth,role('organizer','admin'),async(req,res)=>{
     res.json({...e.toObject(),id:e._id.toString()});
   }catch(err){res.status(400).json({message:err.message||'Could not update event'})}
 });
+
 
 router.get('/:id/ratings',async(req,res)=>res.json(await Rating.find({eventId:req.params.id}).lean()));
 router.post('/:id/register',auth,async(req,res)=>res.status(400).json({message:'Use ticket checkout for registrations'}));
