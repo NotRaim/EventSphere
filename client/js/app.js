@@ -48,10 +48,40 @@ const ES = (() => {
       try{ data = await res.json(); }catch{}
       if(!res.ok) return fallback;
       const list = Array.isArray(data) ? data : (data.events || data.data || []);
-      return Array.isArray(list) && list.length ? list : fallback;
+      const clean=list.filter(e=>e&&String(e.status||'published')==='published'&&String(e.visibility||'public')!=='private');
+      return clean.length ? clean : fallback;
     }catch{
       return fallback;
     }
+  }
+
+  async function uploadImage(file){
+    if(!file) return '';
+    if(!/^image\//i.test(file.type)) throw new Error('Please choose an image file');
+    if(file.size>5*1024*1024) throw new Error('Each image must be 5 MB or smaller');
+    const compressed=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onerror=()=>reject(new Error('Could not read image'));
+      reader.onload=()=>{
+        const img=new Image();
+        img.onerror=()=>reject(new Error('Could not process image'));
+        img.onload=()=>{
+          const max=1800,scale=Math.min(1,max/Math.max(img.width,img.height));
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.max(1,Math.round(img.width*scale));
+          canvas.height=Math.max(1,Math.round(img.height*scale));
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not compress image')),'image/webp',.82);
+        };
+        img.src=reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    const fd=new FormData();
+    fd.append('image',compressed,`${String(file.name||'image').replace(/\.[^.]+$/,'')}.webp`);
+    const result=await api('/uploads/image',{method:'POST',body:fd});
+    return result.url||'';
   }
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -230,7 +260,7 @@ const ES = (() => {
         authArea.innerHTML=`
           ${manageLink}
           <div class="dropdown notification-dropdown">
-            <button class="btn btn-dark desktop-action notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
+            <button class="btn btn-ghost desktop-action notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
               <span aria-hidden="true">🔔</span>
               <span class="notification-dot" data-notification-count hidden>0</span>
             </button>
@@ -306,7 +336,17 @@ const ES = (() => {
               ${['organizer','admin'].includes(role)
                 ? '<a href="manage-events.html"><span>Manage events</span><small>Events, check-in & QR</small></a>'
                 : ''}
-              <a href="dashboard.html#notifications"><span>Notifications</span><small>Updates & booking alerts</small></a>
+              <button class="mobile-notification-toggle" type="button" data-mobile-notifications>
+                <span><span>Notifications</span><small>Updates & booking alerts</small></span>
+                <span class="mobile-notification-count" data-mobile-notification-count hidden>0</span>
+              </button>
+              <div class="mobile-notification-panel" data-mobile-notification-panel hidden>
+                <div class="mobile-notification-head">
+                  <strong>Notifications</strong>
+                  <button type="button" data-mobile-mark-notifications>Mark all read</button>
+                </div>
+                <div data-mobile-notification-list></div>
+              </div>
               <a href="tickets.html"><span>My tickets</span><small>Passes & verification</small></a>
               <a href="saved.html"><span>Saved plans</span><small>Your shortlist</small></a>
               <a href="profile.html"><span>Profile</span><small>Edit your details</small></a>
@@ -330,49 +370,163 @@ const ES = (() => {
         session.clear();
         location.href='index.html';
       });
+
+      const mobileNotifyToggle=panel?.querySelector('[data-mobile-notifications]');
+      const mobileNotifyPanel=panel?.querySelector('[data-mobile-notification-panel]');
+      const mobileNotifyList=panel?.querySelector('[data-mobile-notification-list]');
+      const mobileNotifyCount=panel?.querySelector('[data-mobile-notification-count]');
+      const mobileMarkAll=panel?.querySelector('[data-mobile-mark-notifications]');
+
+      const drawMobileNotifications=(items=[])=>{
+        const unread=items.filter(n=>!n.read).length;
+        if(mobileNotifyCount){
+          mobileNotifyCount.textContent=unread>9?'9+':String(unread);
+          mobileNotifyCount.hidden=!unread;
+        }
+        if(!mobileNotifyList)return;
+        mobileNotifyList.innerHTML=items.length
+          ? items.map(n=>`<button type="button" class="mobile-notif ${n.read?'':'unread'}" data-mobile-notification-id="${esc(n.id||n._id||'')}"><strong>${esc(n.title||'EventSphere update')}</strong><span>${esc(n.message||'')}</span><small>${notificationTime(n.createdAt)}</small></button>`).join('')
+          : '<div class="notification-empty"><span>✓</span><strong>You’re all caught up</strong><small>No new EventSphere updates.</small></div>';
+      };
+
+      const refreshMobileNotifications=async()=>{
+        if(!loggedIn)return;
+        try{
+          const result=await remoteNotifications();
+          drawMobileNotifications(Array.isArray(result)?result:[]);
+        }catch{drawMobileNotifications(notifications())}
+      };
+
+      mobileNotifyToggle?.addEventListener('click',async ev=>{
+        ev.preventDefault();
+        ev.stopPropagation();
+        const opening=mobileNotifyPanel?.hidden!==false;
+        if(mobileNotifyPanel)mobileNotifyPanel.hidden=!opening;
+        if(opening)await refreshMobileNotifications();
+      });
+
+      mobileMarkAll?.addEventListener('click',async()=>{
+        try{await remoteReadAllNotifications();}catch{}
+        await refreshMobileNotifications();
+        toast('All notifications marked as read','success');
+      });
+
+      mobileNotifyPanel?.addEventListener('click',async ev=>{
+        const item=ev.target.closest('[data-mobile-notification-id]');
+        if(!item)return;
+        const id=item.dataset.mobileNotificationId;
+        try{await api('/me/notifications/'+encodeURIComponent(id)+'/read',{method:'POST'});}catch{}
+        await refreshMobileNotifications();
+      });
+
+      refreshMobileNotifications();
     });
   }
 
   async function mountNotificationCenter(){
     const dropdown=document.querySelector('.notification-dropdown');
     if(!dropdown || !session.getToken()) return;
+
     const trigger=dropdown.querySelector('.notification-trigger');
     const list=dropdown.querySelector('[data-notification-list]');
     const count=dropdown.querySelector('[data-notification-count]');
     const mark=dropdown.querySelector('[data-mark-notifications]');
+    let items=[];
 
-    const draw=(items)=>{
-      const unread=items.filter(n=>!n.read).length;
-      if(count){count.textContent=unread>9?'9+':String(unread);count.hidden=!unread;}
-      if(!list)return;
-      list.innerHTML=items.length
-        ? items.slice(0,6).map(n=>`<button type="button" class="notif ${n.read?'':'unread'}" data-notification-id="${esc(n.id||n._id)}" style="display:block;width:100%;border:0;text-align:left;background:transparent;color:inherit;cursor:pointer"><strong>${esc(n.title||'EventSphere update')}</strong><div class="muted">${esc(n.message||'')}</div><small class="muted">${notificationTime(n.createdAt)}</small></button>`).join('')
-        : '<div class="empty" style="padding:16px 8px">No notifications yet.</div>';
+    const unreadCount=()=>items.filter(n=>!n.read).length;
+
+    const updateBadge=()=>{
+      const unread=unreadCount();
+      if(count){
+        count.textContent=unread>9?'9+':String(unread);
+        count.hidden=!unread;
+      }
     };
 
-    try{
-      const items=await remoteNotifications();
-      draw(Array.isArray(items)?items:[]);
-    }catch{draw(notifications())}
+    const draw=()=>{
+      updateBadge();
+      if(!list)return;
 
-    trigger?.addEventListener('click',()=>{
-      trigger.setAttribute('aria-expanded',dropdown.classList.contains('open')?'false':'true');
+      list.innerHTML=items.length
+        ? items.map(n=>{
+            const id=esc(n.id||n._id||'');
+            const title=esc(n.title||'EventSphere update');
+            const message=esc(n.message||'');
+            const when=notificationTime(n.createdAt);
+            return `
+              <button type="button"
+                class="notif ${n.read?'':'unread'}"
+                data-notification-id="${id}"
+                aria-label="${title}">
+                <span class="notif-icon" aria-hidden="true">${n.read?'•':'●'}</span>
+                <span class="notif-copy">
+                  <strong>${title}</strong>
+                  <span>${message}</span>
+                  <small>${when}</small>
+                </span>
+                ${n.read?'':'<span class="notif-new">NEW</span>'}
+              </button>`;
+          }).join('')
+        : '<div class="notification-empty"><span>✓</span><strong>You’re all caught up</strong><small>No new EventSphere updates.</small></div>';
+    };
+
+    const load=async()=>{
+      try{
+        const result=await remoteNotifications();
+        items=Array.isArray(result)?result:[];
+      }catch{
+        items=notifications();
+      }
+      draw();
+    };
+
+    await load();
+
+    trigger?.addEventListener('click',async ev=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const opening=!dropdown.classList.contains('open');
+      document.querySelectorAll('.notification-dropdown.open').forEach(x=>{
+        if(x!==dropdown){
+          x.classList.remove('open');
+          x.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false');
+        }
+      });
+      dropdown.classList.toggle('open',opening);
+      trigger.setAttribute('aria-expanded',opening?'true':'false');
+      if(opening) await load();
     });
+
     dropdown.addEventListener('click',async ev=>{
       const item=ev.target.closest('[data-notification-id]');
       if(!item)return;
+
       const id=item.dataset.notificationId;
-      try{await api('/me/notifications/'+encodeURIComponent(id)+'/read',{method:'POST'});}catch{}
-      item.classList.remove('unread');
-      item.disabled=true;
-      item.style.opacity='.7';
+      const found=items.find(n=>String(n.id||n._id)===String(id));
+      if(!found || found.read)return;
+
+      try{
+        await api('/me/notifications/'+encodeURIComponent(id)+'/read',{method:'POST'});
+      }catch{}
+
+      found.read=true;
+      draw();
     });
+
     mark?.addEventListener('click',async ev=>{
-      ev.preventDefault();ev.stopPropagation();
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      if(!unreadCount())return;
+
       try{await remoteReadAllNotifications();}catch{}
-      const items=await remoteNotifications().catch(()=>notifications());
-      draw(Array.isArray(items)?items:[]);
+      items=items.map(n=>({...n,read:true}));
+      draw();
+      toast('All notifications marked as read','success');
     });
+
+    // Keep the badge useful without requiring a page refresh.
+    setInterval(load,30000);
   }
 
   // ----------------------------------------------------------
@@ -409,7 +563,7 @@ const ES = (() => {
   async function remoteProfile(data){ const r=await api('/me/profile',{method:'PUT',body:data}); const token=session.getToken(); if(token) session.set(token,r.user,true); return r.user; }
   function categoryClass(category){return 'ticket-'+String(category||'community').toLowerCase().replace(/[^a-z]/g,'')}
 
-  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
+  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar,uploadImage};
 
 })();
 
@@ -438,10 +592,14 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  // Notification dropdowns
-  document.querySelectorAll('[data-notifications]').forEach(btn=>{
-    const box=btn.closest('.dropdown');btn.addEventListener('click',()=>box.classList.toggle('open'));
-    document.addEventListener('click',e=>{if(!box.contains(e.target))box.classList.remove('open')});
+  // Close notification popovers only when the click is outside them.
+  document.addEventListener('click',e=>{
+    document.querySelectorAll('.notification-dropdown.open').forEach(box=>{
+      if(!box.contains(e.target)){
+        box.classList.remove('open');
+        box.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false');
+      }
+    });
   });
 
   // Mobile menu

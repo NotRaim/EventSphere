@@ -1,7 +1,7 @@
 
 document.addEventListener('DOMContentLoaded',async()=>{
   const grid=document.querySelector('#events-grid'),search=document.querySelector('#event-search');
-  const all=(await ES.events()).filter(e=>!ES.registrationDeadlinePassed(e));let cat='All', sort='date';
+  const all=(await ES.events()).filter(e=>String(e.status||'published')==='published'&&String(e.visibility||'public')!=='private'&&!ES.registrationDeadlinePassed(e));let cat='All', sort='date';
   const loadRecommendations=async()=>{
     if(!ES.session.getToken())return;
     try{

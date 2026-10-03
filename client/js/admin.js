@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const q = String(search?.value || '').toLowerCase().trim();
     const st = status?.value || 'all';
 
-    const rows = events.filter(e => {
+    const rows = events.filter(e => String(e.status||'')!=='cancelled').filter(e => {
       const hay = `${e.title || ''} ${e.category || ''} ${e.city || ''} ${e.organizerName || ''}`.toLowerCase();
       return (!q || hay.includes(q)) && (st === 'all' || String(e.status || '') === st);
     });
@@ -78,14 +78,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="toolbar">
           <span class="pill">${ES.esc(e.status || 'published')}</span>
           <a class="btn btn-small btn-ghost" href="event-details.html?id=${encodeURIComponent(e.id)}">View</a>
-          <button class="btn btn-small btn-cyan" data-publish="${ES.esc(e.id)}">Publish</button>
-          <button class="btn btn-small btn-ghost" data-reject="${ES.esc(e.id)}">Reject</button>
+          ${e.status!=='published'?`<button class="btn btn-small btn-cyan" data-publish="${ES.esc(e.id)}">Publish</button>`:''}
+          ${e.status!=='rejected'?`<button class="btn btn-small btn-ghost" data-reject="${ES.esc(e.id)}">Reject</button>`:''}
+          ${e.status!=='cancelled'?`<button class="btn btn-small btn-ghost" data-cancel="${ES.esc(e.id)}">Cancel event</button>`:''}
+          <button class="btn btn-small btn-danger" data-delete-event="${ES.esc(e.id)}">Remove</button>
         </div>
       </article>
     `).join('') : '<div class="empty">No events match your filters.</div>';
 
     grid.querySelectorAll('[data-publish]').forEach(btn => btn.onclick = () => setStatus(btn.dataset.publish, 'published'));
     grid.querySelectorAll('[data-reject]').forEach(btn => btn.onclick = () => setStatus(btn.dataset.reject, 'rejected'));
+    grid.querySelectorAll('[data-cancel]').forEach(btn => btn.onclick = () => cancelEvent(btn.dataset.cancel));
+    grid.querySelectorAll('[data-delete-event]').forEach(btn => btn.onclick = () => removeEvent(btn.dataset.deleteEvent));
+  }
+
+  async function cancelEvent(id) {
+    if(!confirm('Cancel this event? It will disappear from public event listings and active tickets will be cancelled.'))return;
+    try{
+      await ES.api('/events/'+encodeURIComponent(id),{method:'PATCH',body:{status:'cancelled'}});
+      events=events.filter(x=>String(x.id)!==String(id));
+      ES.toast('Event cancelled and removed from public listings','success');
+      draw();
+    }catch(err){ES.toast(err.message||'Could not cancel event','error')}
+  }
+
+  async function removeEvent(id) {
+    if(!confirm('Permanently remove this event? This cannot be undone.'))return;
+    try{
+      await ES.api('/events/'+encodeURIComponent(id),{method:'DELETE'});
+      events=events.filter(x=>String(x.id)!==String(id));
+      ES.toast('Event removed from EventSphere','success');
+      draw();
+    }catch(err){ES.toast(err.message||'Could not remove event','error')}
   }
 
   async function setStatus(id, nextStatus) {

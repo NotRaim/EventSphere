@@ -125,6 +125,11 @@ app.use(
 );
 
 app.use(
+    '/api/uploads',
+    require('./routes/uploads')
+);
+
+app.use(
     '/api/me',
     require('./routes/me')
 );

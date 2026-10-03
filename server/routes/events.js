@@ -7,7 +7,7 @@ const Feedback=require('../models/Feedback');
 const Ticket=require('../models/Ticket');
 const {auth,role}=require('../middleware/auth');
 
-const editableFields=['title','category','date','time','venue','city','price','capacity','description','image','registrationDeadline','visibility','ticketTypes'];
+const editableFields=['title','category','date','time','venue','city','price','capacity','description','image','gallery','registrationDeadline','visibility','ticketTypes'];
 
 function normalizeTicketTypes(input, fallbackPrice=0, fallbackCapacity=100){
   const source=Array.isArray(input)?input:[];
@@ -55,7 +55,11 @@ router.get('/manage/list',auth,role('organizer','admin'),async(req,res)=>{
 
 router.get('/:id',async(req,res)=>{
   try{
-    const e=await Event.findByIdAndUpdate(req.params.id,{$inc:{views:1}},{new:true}).lean();
+    const e=await Event.findOneAndUpdate(
+      {_id:req.params.id,status:'published',visibility:'public'},
+      {$inc:{views:1}},
+      {new:true}
+    ).lean();
     if(!e)return res.status(404).json({message:'Event not found'});
     res.json({...e,id:e._id.toString()});
   }catch{res.status(404).json({message:'Event not found'})}
@@ -107,6 +111,18 @@ router.patch('/:id',auth,role('organizer','admin'),async(req,res)=>{
 
     res.json({...e.toObject(),id:e._id.toString()});
   }catch(err){res.status(400).json({message:err.message||'Could not update event'})}
+});
+
+router.delete('/:id',auth,role('admin','organizer'),async(req,res)=>{
+  try{
+    const e=await Event.findById(req.params.id);
+    if(!e)return res.status(404).json({message:'Event not found'});
+    if(req.user.role==='organizer'&&String(e.organizerId)!==String(req.user._id))return res.status(403).json({message:'Not your event'});
+    await Ticket.updateMany({eventId:e._id,status:{$in:['valid','checked_in']}},{$set:{status:'cancelled'}});
+    await Notification.deleteMany({message:{$regex:e.title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}});
+    await Event.deleteOne({_id:e._id});
+    res.json({ok:true,id:String(e._id)});
+  }catch(err){res.status(400).json({message:err.message||'Could not remove event'})}
 });
 
 router.get('/:id/ratings',async(req,res)=>res.json(await Rating.find({eventId:req.params.id}).lean()));

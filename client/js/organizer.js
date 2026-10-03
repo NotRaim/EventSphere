@@ -2,6 +2,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const user=ES.guard();if(!user)return;if(!['organizer','admin'].includes(user.role)){ES.toast('Organizer or admin access required','error');location.href='dashboard.html';return;}
  const form=document.querySelector('#create-event');if(!form)return;
  const builder=document.querySelector('#ticket-types-builder');
+ const coverFile=document.querySelector('#cover-image-file');
+ const coverPreview=document.querySelector('#cover-image-preview');
+ const galleryFiles=document.querySelector('#gallery-image-files');
+ const galleryPreview=document.querySelector('#gallery-image-preview');
+ const previewFile=(file,target)=>{if(!file||!target)return;const r=new FileReader();r.onload=()=>{target.hidden=false;target.innerHTML=`<img src="${r.result}" alt="Selected image preview">`;};r.readAsDataURL(file)};
+ coverFile?.addEventListener('change',()=>previewFile(coverFile.files?.[0],coverPreview));
+ galleryFiles?.addEventListener('change',()=>{if(!galleryPreview)return;galleryPreview.innerHTML='';[...galleryFiles.files].slice(0,6).forEach(f=>{const wrap=document.createElement('div');wrap.className='upload-preview';const r=new FileReader();r.onload=()=>{wrap.innerHTML=`<img src="${r.result}" alt="Gallery preview">`;};r.readAsDataURL(f);galleryPreview.append(wrap);});});
  let typeIndex=0;
  const addType=(data={})=>{
    typeIndex+=1;
@@ -34,7 +41,16 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const totalTypeCapacity=body.ticketTypes.reduce((n,t)=>n+Math.max(1,Number(t.capacity||1)),0);
    body.capacity=Math.max(Number(body.capacity||1),totalTypeCapacity);
    body.price=Number(body.ticketTypes[0]?.price||0);
+   if(coverFile?.files?.[0]){
+     btn.textContent='Uploading cover…';
+     body.image=await ES.uploadImage(coverFile.files[0]);
+   }
+   if(galleryFiles?.files?.length){
+     btn.textContent='Uploading gallery…';
+     body.gallery=[];
+     for(const file of [...galleryFiles.files].slice(0,6)) body.gallery.push(await ES.uploadImage(file));
+   }else body.gallery=[];
    await ES.api('/events',{method:'POST',body});
-   localStorage.removeItem('es_event_draft');ES.toast('Event published with multiple ticket types ✓','success');form.reset();form.elements.city.value='Ahmedabad';builder.innerHTML='';typeIndex=0;addType({name:'General Admission',price:0,capacity:50,benefits:[]});await refresh()
+   localStorage.removeItem('es_event_draft');ES.toast('Event published with multiple ticket types ✓','success');form.reset();form.elements.city.value='Ahmedabad';if(coverPreview){coverPreview.hidden=true;coverPreview.innerHTML=''}if(galleryPreview)galleryPreview.innerHTML='';builder.innerHTML='';typeIndex=0;addType({name:'General Admission',price:0,capacity:50,benefits:[]});await refresh()
  }catch(err){ES.toast(err.message||'Could not publish this event','error')}finally{btn.disabled=false;btn.textContent='Publish event →'}});
 });

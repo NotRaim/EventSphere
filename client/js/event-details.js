@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  if(String(e.status||'published')!=='published' || String(e.visibility||'public')==='private'){ root.innerHTML='<div class="glass-panel panel" style="padding:30px"><h2>Event unavailable</h2><p class="muted">This event is no longer available.</p><a class="btn btn-cyan" href="events.html">Back to events</a></div>'; return; }
   const isDatabaseEvent = /^[a-f0-9]{24}$/i.test(String(e.id));
   const salesClosed = ES.registrationDeadlinePassed(e);
   const soldOut = ES.seats(e) <= 0;
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h2 class="section-title" style="font-size:42px">Simple schedule.</h2>
         <div class="timeline">${agenda.map(a => `<div class="timeline-item"><div class="timeline-time">${a[0]}</div><div><strong>${a[1]}</strong><p class="muted">A short, useful moment in the experience.</p></div></div>`).join('')}</div>
       </div>
+      ${Array.isArray(e.gallery)&&e.gallery.length?`<section class="event-gallery glass-panel reveal"><div class="section-kicker">Event gallery</div><div class="event-gallery-grid">${e.gallery.slice(0,6).map((src,i)=>`<img src="${ES.esc(src)}" alt="${ES.esc(e.title)} photo ${i+1}" loading="lazy">`).join('')}</div></section>`:''}
       <div class="event-community glass-panel">
         <div><div class="section-kicker">Community pulse</div><h3>Rate this event</h3><p class="muted">Your rating helps shape EventSphere recommendations.</p></div>
         <div class="rating-row" id="rating-row">${[1, 2, 3, 4, 5].map(n => `<button data-rate="${n}">${n <= ES.getRating(e.id) ? '★' : '☆'}</button>`).join('')}</div>

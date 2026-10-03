@@ -20,6 +20,7 @@ const s=new mongoose.Schema({
   registeredCount:{type:Number,min:0,default:0},
   description:{type:String,required:true,maxlength:5000},
   image:String,
+  gallery:{type:[String],default:[]},
   registrationDeadline:String,
   visibility:{type:String,enum:['public','private'],default:'public'},
   status:{type:String,enum:['draft','pending','published','rejected','archived','cancelled'],default:'published'},

@@ -415,3 +415,192 @@ body.modal-open{overflow:hidden}
 @keyframes softGlow{0%,100%{box-shadow:0 0 0 rgba(22,230,238,0)}50%{box-shadow:0 0 35px rgba(22,230,238,.10)}}
 .profile-card,.profile-preferences,.contact-card,.password-card{animation:softGlow 5s ease-in-out infinite}.event-card{animation:cardEnter .55s var(--ease) both}@keyframes cardEnter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.profile-card,.profile-preferences,.contact-card,.password-card,.event-card{animation:none!important}}
+
+/* =========================================================
+   PHASE 4 MOBILE + COMMUNITY UI POLISH
+   Dark surfaces only — no browser-white controls.
+========================================================= */
+:root{color-scheme:dark}
+
+select,
+select option,
+select optgroup,
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"]{
+  color-scheme:dark;
+}
+.field select,
+.search-row select,
+.search select,
+select.search{
+  background:#0a0f10 !important;
+  color:#edf7f7 !important;
+  border-color:var(--line) !important;
+}
+select option,
+select optgroup{
+  background:#0b1112 !important;
+  color:#edf7f7 !important;
+}
+select option:checked,
+select option:hover{
+  background:#12383b !important;
+  color:#7ff8fb !important;
+}
+
+/* Notification center: stable sizing and readable content. */
+.notification-dropdown{position:relative;z-index:1300}
+.notification-trigger{display:grid!important;place-items:center;flex:0 0 48px;overflow:visible}
+.notification-panel{width:min(430px,calc(100vw - 24px));max-height:min(72vh,620px);overflow:hidden}
+.notification-panel [data-notification-list]{min-width:0;max-height:calc(min(72vh,620px) - 62px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.notification-panel [data-notification-list]::-webkit-scrollbar{width:6px}
+.notification-panel [data-notification-list]::-webkit-scrollbar-thumb{background:rgba(22,230,238,.22);border-radius:99px}
+.notif{min-width:0}
+.notif-copy{min-width:0;width:100%}
+.notif-copy strong,.notif-copy span{display:block;min-width:0;overflow-wrap:anywhere;word-break:normal}
+
+/* Ticket tiers */
+.ticket-types-builder{display:grid;gap:10px}
+.ticket-type-builder-row{position:relative;padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(255,255,255,.025)}
+.ticket-type-builder-grid{display:grid;grid-template-columns:1fr .75fr .75fr 1.6fr;gap:10px;padding-right:42px}
+.ticket-type-builder-row .field{margin:0}
+.ticket-type-builder-row .field input{background:#080d0e}
+.ticket-type-remove{position:absolute;right:12px;top:14px;width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,100,124,.22);background:rgba(255,100,124,.06);color:#ff8496}
+.ticket-type-remove:hover{background:rgba(255,100,124,.12);border-color:rgba(255,100,124,.42)}
+.ticket-type-options{display:grid;gap:9px;margin:14px 0 16px}
+.ticket-type-option{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:17px;background:#0a1011;color:#eaf4f4;text-align:left;transition:.22s var(--ease)}
+.ticket-type-option:hover{border-color:rgba(22,230,238,.28);background:rgba(22,230,238,.055)}
+.ticket-type-option.active{border-color:rgba(22,230,238,.55);background:linear-gradient(135deg,rgba(22,230,238,.12),rgba(22,230,238,.035));box-shadow:0 0 0 1px rgba(22,230,238,.08) inset}
+.ticket-type-option strong{display:block;font-size:14px}
+.ticket-type-option small,.ticket-type-option em{display:block;color:#839494;font-size:11px;font-style:normal;margin-top:3px;overflow-wrap:anywhere}
+.ticket-type-option em{color:#a9b9b9}
+.ticket-type-option>b{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;color:var(--cyan);background:rgba(22,230,238,.08)}
+
+/* Community reviews */
+.reviews-section{margin-top:20px}
+.reviews-list{display:grid;gap:9px;margin-top:14px}
+.review-card{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.022)}
+.review-card-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.review-card-head strong{font-size:13px;overflow-wrap:anywhere}
+.review-card-head span{color:var(--cyan);font-size:13px;white-space:nowrap}
+.review-card p{margin:8px 0 5px;color:#b1bebe;font-size:13px;overflow-wrap:anywhere}
+.review-card small{font-size:10px}
+.review-form{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.review-stars{display:flex;gap:3px;margin:8px 0}
+.review-stars button{border:0;background:transparent;color:var(--cyan);font-size:25px;padding:3px;line-height:1}
+.review-form textarea{width:100%;display:block;resize:vertical;min-height:105px;background:#080d0e;color:#edf7f7;border:1px solid var(--line);border-radius:14px;padding:13px 14px;outline:none}
+.review-form textarea:focus{border-color:rgba(22,230,238,.5);box-shadow:0 0 0 4px rgba(22,230,238,.06)}
+
+/* Checkout cards */
+.checkout-ticket-card{padding:14px;border:1px solid rgba(22,230,238,.18);border-radius:16px;background:rgba(22,230,238,.045);margin:14px 0}
+.checkout-ticket-card strong{display:block;font-size:15px}
+.checkout-ticket-card .muted{margin-top:4px;font-size:12px;overflow-wrap:anywhere}
+.demo-method{background:#0a1011!important;color:#dce8e8!important}
+.demo-method:hover,.demo-method.active{background:rgba(22,230,238,.09)!important;color:var(--cyan)!important}
+.demo-payment-box{background:#0a1011!important}
+
+/* Mobile: turn dense desktop layouts into comfortable single-column cards. */
+@media(max-width:760px){
+  .site-nav{z-index:1400}
+  .mobile-panel{z-index:1350;background:rgba(5,9,10,.985);border-color:rgba(22,230,238,.14);box-shadow:0 30px 90px rgba(0,0,0,.65)}
+  .mobile-panel .mobile-auth-links{gap:5px}
+  .mobile-panel .mobile-auth-links a,
+  .mobile-notification-toggle{min-height:52px;border:1px solid rgba(255,255,255,.06);background:#080d0e}
+  .mobile-panel .mobile-auth-links a:hover,
+  .mobile-notification-toggle:hover{background:rgba(22,230,238,.07);border-color:rgba(22,230,238,.16)}
+  .mobile-notification-panel{background:#080d0e;border-color:rgba(22,230,238,.15);max-height:46vh;margin:2px 0 7px;padding:8px}
+  .mobile-notif{padding:12px 9px;border-radius:11px}
+  .mobile-notif strong,.mobile-notif span{overflow-wrap:anywhere}
+
+  .showcase-banner{grid-template-columns:1fr!important;min-height:0!important;padding:24px!important;gap:24px}
+  .showcase-banner h2{font-size:clamp(38px,12vw,50px)!important}
+  .showcase-banner > div:last-child{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .showcase-banner > div:last-child .glass-panel{min-width:0;padding:15px!important}
+  .showcase-banner > div:last-child .glass-panel strong{font-size:13px}
+  .showcase-banner > div:last-child .glass-panel p{font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+
+  .detail-copy,.booking{padding:16px!important}
+  .detail-cover{height:315px!important}
+  .detail-overlay h1{font-size:clamp(32px,10vw,42px)!important}
+  .detail-layout{gap:12px!important}
+  .tabs{overflow-x:auto;scrollbar-width:none;white-space:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:11px 12px}
+  .event-community{padding:15px!important}
+  .rating-row{justify-content:flex-start}
+  .rating-row button{font-size:23px}
+  .organizer-strip{align-items:flex-start;flex-wrap:wrap}
+  .organizer-strip>div:nth-child(2){min-width:0}
+  .organizer-strip .btn{margin-left:auto}
+
+  .ticket-type-builder-row{padding:12px}
+  .ticket-type-builder-grid{grid-template-columns:1fr 1fr;padding-right:0;gap:8px}
+  .ticket-type-builder-grid .ticket-benefits-field{grid-column:1/-1}
+  .ticket-type-remove{position:absolute;right:9px;top:9px}
+  .ticket-type-builder-grid .field:first-child{padding-right:40px;grid-column:1/-1}
+  .ticket-type-options{gap:8px}
+  .ticket-type-option{padding:12px}
+
+  .demo-payment-modal{width:calc(100vw - 20px)!important;padding:17px!important}
+  .demo-payment-modal h2{font-size:30px!important}
+  .ticket-modal .ticket-row{display:grid!important;grid-template-columns:1fr auto;gap:12px}
+  .ticket-total{font-size:18px}
+  .checkout-note{font-size:10px}
+
+  .reviews-section{padding:16px!important}
+  .review-card-head{align-items:flex-start;flex-direction:column;gap:5px}
+  .review-form .btn{width:100%}
+
+  .search,.field input,.field select,.field textarea{font-size:16px!important}
+  .toolbar{width:100%;display:grid;grid-template-columns:1fr;gap:8px}
+  .toolbar .btn{width:100%}
+  .dash-top{gap:16px}
+  .stats{gap:8px!important}
+  .stat{padding:14px!important}
+  .stat strong{font-size:25px}
+}
+
+@media(max-width:430px){
+  .container{width:calc(100% - 18px)}
+  .mobile-panel{left:6px;right:6px}
+  .showcase-banner{padding:20px!important;border-radius:24px}
+  .showcase-banner > div:last-child{grid-template-columns:1fr 1fr!important}
+  .showcase-banner > div:last-child .glass-panel{padding:13px!important;border-radius:17px}
+  .showcase-banner > div:last-child .glass-panel div:first-child{font-size:23px!important}
+  .showcase-banner > div:last-child .glass-panel p{font-size:10px}
+  .ticket-type-builder-grid{grid-template-columns:1fr}
+  .ticket-type-builder-grid .field:first-child,.ticket-type-builder-grid .ticket-benefits-field{grid-column:auto}
+  .ticket-type-builder-grid .field:first-child{padding-right:38px}
+  .review-stars button{font-size:23px}
+  .detail-cover{height:290px!important}
+  .event-community{gap:10px}
+}
+
+/* =========================================================
+   IMAGE UPLOADS
+========================================================= */
+.field input[type="file"]{
+  color:#a8b8b8;
+  padding:10px;
+  border:1px dashed rgba(22,230,238,.22);
+  background:rgba(8,14,15,.82);
+  cursor:pointer;
+}
+.field input[type="file"]::file-selector-button{
+  margin-right:10px;
+  border:1px solid rgba(22,230,238,.25);
+  border-radius:10px;
+  padding:8px 11px;
+  background:rgba(22,230,238,.09);
+  color:var(--cyan);
+  font-weight:800;
+  cursor:pointer;
+}
+.upload-preview{margin-top:10px;width:100%;max-width:280px;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#080e0f}
+.upload-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.upload-gallery-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.upload-gallery-preview .upload-preview{margin:0;max-width:none}
+@media(max-width:560px){.upload-gallery-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.event-gallery{margin-top:18px;padding:20px}.event-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.event-gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:#080e0f}@media(max-width:700px){.event-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.btn-danger{border-color:rgba(255,100,124,.34)!important;color:#ff7b91!important;background:rgba(255,100,124,.05)!important}.btn-danger:hover{background:rgba(255,100,124,.11)!important;border-color:rgba(255,100,124,.5)!important}
