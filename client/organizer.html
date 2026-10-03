@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>Organizer Studio — EventSphere</title><link rel="stylesheet" href="css/style.css"></head><body>
 <header class="site-nav">
-  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+  <a class="brand" href="index.html"><img class="brand-logo" src="assets/eventsphere-logo.svg" alt="EventSphere"><span class="brand-name">EventSphere</span></a>
   <nav class="nav-links"><a href="index.html">Home</a><a href="events.html">Discover</a><a class="active" href="organizer.html">Create event</a><a href="dashboard.html">My plans</a></nav>
   <div class="nav-actions"><button class="nav-toggle" data-menu aria-label="Open menu">☰</button></div>
 </header>
@@ -27,8 +27,8 @@
       <div class="form-row"><div class="field"><label>Date</label><input type="date" name="date" required></div><div class="field"><label>Time</label><input type="time" name="time" required></div></div>
       <div class="form-row"><div class="field"><label>Venue</label><input name="venue" required placeholder="The Courtyard"></div><div class="field"><label>City</label><input name="city" value="Ahmedabad"></div></div>
       <div class="form-row"><div class="field"><label>Base ticket price</label><input type="number" name="price" min="0" value="0" id="base-ticket-price"></div><div class="field"><label>Event capacity</label><input type="number" name="capacity" min="1" value="100" id="event-capacity-top"></div></div>
-      <div class="form-row"><div class="field"><label>Registration deadline</label><input type="date" name="registrationDeadline"></div><div class="field"><label>Cover image</label><input type="file" id="cover-image-file" accept="image/*"><small class="form-hint">Upload JPG, PNG or WEBP · max 5 MB</small><div id="cover-image-preview" class="upload-preview" hidden></div></div></div>
-      <div class="field"><label>Event gallery</label><input type="file" id="gallery-image-files" accept="image/*" multiple><small class="form-hint">Add up to 6 event photos.</small><div id="gallery-image-preview" class="upload-gallery-preview"></div></div>
+      <div class="form-row"><div class="field"><label>Registration deadline</label><input type="date" name="registrationDeadline"></div><div class="field"><label>Cover image</label><input id="event-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif"></div></div>
+      <div class="field"><label>Event gallery <span class="muted">(optional, up to 6)</span></label><input id="event-gallery-files" type="file" accept="image/png,image/jpeg,image/webp,image/avif" multiple><div id="event-image-preview" class="image-upload-preview"></div></div>
       <div class="form-row"><div class="field"><label>Capacity note</label><input value="Managed by ticket types" disabled></div><div class="field"><label>Visibility</label><select name="visibility"><option value="public">Public</option><option value="private">Private</option></select></div></div>
       <section class="ticket-builder glass-panel" style="padding:18px;margin:4px 0 18px">
         <div class="section-head"><div><div class="section-kicker">Ticket setup</div><h3>Multiple ticket types</h3><p class="muted" style="margin:4px 0 0">Create General, VIP, Premium or any custom tier with its own price, capacity and benefits.</p></div><button class="btn btn-small btn-ghost" id="add-ticket-type" type="button">＋ Add type</button></div>

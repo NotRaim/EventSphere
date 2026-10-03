@@ -71,7 +71,7 @@ app.use(
 
 app.use(
     express.json({
-        limit: '1mb'
+        limit: '8mb'
     })
 );
 
@@ -122,11 +122,6 @@ app.use(
 app.use(
     '/api/events',
     require('./routes/events')
-);
-
-app.use(
-    '/api/uploads',
-    require('./routes/uploads')
 );
 
 app.use(

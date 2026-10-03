@@ -31,6 +31,7 @@ function cleanEventBody(body={}){
   if(out.price!==undefined)out.price=Math.max(0,Number(out.price||0));
   if(out.capacity!==undefined)out.capacity=Math.max(1,Number(out.capacity||1));
   if(out.ticketTypes!==undefined)out.ticketTypes=normalizeTicketTypes(out.ticketTypes,out.price??0,out.capacity??100);
+  if(out.gallery!==undefined)out.gallery=Array.isArray(out.gallery)?out.gallery.map(x=>String(x||'')).filter(Boolean).slice(0,6):[];
   return out;
 }
 
@@ -47,7 +48,7 @@ router.get('/',async(req,res)=>{
 /* Organizer/Admin workspace: never uses the public/demo event fallback. */
 router.get('/manage/list',auth,role('organizer','admin'),async(req,res)=>{
   try{
-    const q=req.user.role==='admin'?{}:{organizerId:req.user._id};
+    const q=req.user.role==='admin'?{status:{$nin:['cancelled','archived']} }:{organizerId:req.user._id,status:{$nin:['cancelled','archived']} };
     const a=await Event.find(q).sort({createdAt:-1}).lean();
     res.json(a.map(e=>({...e,id:e._id.toString()})));
   }catch{res.status(500).json({message:'Could not load managed events'})}
@@ -55,12 +56,8 @@ router.get('/manage/list',auth,role('organizer','admin'),async(req,res)=>{
 
 router.get('/:id',async(req,res)=>{
   try{
-    const e=await Event.findOneAndUpdate(
-      {_id:req.params.id,status:'published',visibility:'public'},
-      {$inc:{views:1}},
-      {new:true}
-    ).lean();
-    if(!e)return res.status(404).json({message:'Event not found'});
+    const e=await Event.findOneAndUpdate({_id:req.params.id,status:'published',visibility:'public'},{$inc:{views:1}},{new:true}).lean();
+    if(!e)return res.status(404).json({message:'Event not found or no longer available'});
     res.json({...e,id:e._id.toString()});
   }catch{res.status(404).json({message:'Event not found'})}
 });
@@ -113,15 +110,20 @@ router.patch('/:id',auth,role('organizer','admin'),async(req,res)=>{
   }catch(err){res.status(400).json({message:err.message||'Could not update event'})}
 });
 
-router.delete('/:id',auth,role('admin','organizer'),async(req,res)=>{
+router.delete('/:id',auth,role('organizer','admin'),async(req,res)=>{
   try{
-    const e=await Event.findById(req.params.id);
-    if(!e)return res.status(404).json({message:'Event not found'});
+    const e=await Event.findById(req.params.id);if(!e)return res.status(404).json({message:'Event not found'});
     if(req.user.role==='organizer'&&String(e.organizerId)!==String(req.user._id))return res.status(403).json({message:'Not your event'});
-    await Ticket.updateMany({eventId:e._id,status:{$in:['valid','checked_in']}},{$set:{status:'cancelled'}});
-    await Notification.deleteMany({message:{$regex:e.title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}});
-    await Event.deleteOne({_id:e._id});
-    res.json({ok:true,id:String(e._id)});
+    const holders=await Ticket.find({eventId:e._id}).select('userId ticketCode').lean();
+    if(holders.length)await Notification.insertMany(holders.map(t=>({userId:t.userId,title:'Event removed',message:`${e.title} was removed from EventSphere. Ticket ${t.ticketCode} is no longer available.`})));
+    await Promise.all([
+      Ticket.deleteMany({eventId:e._id}),
+      require('../models/Order').deleteMany({eventId:e._id}),
+      Feedback.deleteMany({eventId:e._id}),
+      require('./../models/EventReport').deleteMany({eventId:e._id}),
+      Event.deleteOne({_id:e._id})
+    ]);
+    res.json({ok:true,message:'Event removed everywhere'});
   }catch(err){res.status(400).json({message:err.message||'Could not remove event'})}
 });
 

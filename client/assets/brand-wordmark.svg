@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" role="img" aria-labelledby="t d">
+<title id="t">EventSphere</title><desc id="d">EventSphere neon cyan wordmark</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7ff8fb"/><stop offset=".55" stop-color="#16e6ee"/><stop offset="1" stop-color="#0aa9b0"/></linearGradient></defs>
+<rect width="420" height="96" rx="26" fill="#071011"/>
+<circle cx="49" cy="48" r="29" fill="none" stroke="url(#g)" stroke-width="5"/>
+<path d="M31 34h38l-6 8H42v7h17l-5 7H42v5h25l-6 8H31z" fill="url(#g)"/>
+<circle cx="72" cy="25" r="4" fill="#7ff8fb"/><path d="M49 11l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff"/>
+<text x="94" y="61" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="800" fill="#f4f8f8">Event</text><text x="214" y="61" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="800" fill="url(#g)">Sphere</text>
+</svg>

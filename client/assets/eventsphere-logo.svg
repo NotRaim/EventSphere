@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">EventSphere logo</title>
+  <desc id="desc">Neon cyan E inside an orbital ring on a dark background</desc>
+  <defs>
+    <linearGradient id="g" x1="12" y1="12" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7ff8fb"/><stop offset=".48" stop-color="#16e6ee"/><stop offset="1" stop-color="#0aa9b0"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="28" fill="#071011"/>
+  <path d="M72 25c-12-12-34-13-48-2-15 12-17 31-5 45 10 12 27 17 42 12" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round" transform="rotate(-16 48 48)"/>
+  <path d="M29 35h35l-6 8H39v7h17l-5 7H39v5h22l-6 8H29z" fill="url(#g)"/>
+  <circle cx="74" cy="23" r="5" fill="#7ff8fb"/>
+  <path d="M48 10l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="#f4fbfb"/>
+</svg>

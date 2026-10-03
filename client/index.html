@@ -1,67 +1,750 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050809"><title>EventSphere — Make plans. Make memories.</title><link rel="stylesheet" href="css/style.css"></head><body>
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050809">
+
+  <title>EventSphere — Make plans. Make memories.</title>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
 
 <header class="site-nav">
-  <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EventSphere</span></a>
+
+  <a class="brand" href="index.html">
+    <img class="brand-logo" src="assets/eventsphere-logo.svg" alt="EventSphere"><span class="brand-name">EventSphere</span>
+  </a>
+
   <nav class="nav-links">
-    <a class="active" href="index.html">Home</a>
-    <a class="" href="events.html">Discover</a>
-    <a class="" href="organizer.html">Create event</a>
-    <a class="" href="dashboard.html">My plans</a>
+
+    <a class="active" href="index.html">
+      Home
+    </a>
+
+    <a href="events.html">
+      Discover
+    </a>
+
+    <a href="organizer.html">
+      Create event
+    </a>
+
+    <a href="dashboard.html">
+      My plans
+    </a>
+
   </nav>
+
+  <!--
+    Authentication buttons are inserted dynamically
+    by app.js.
+
+    DO NOT add Login / Join buttons manually here.
+  -->
   <div class="nav-actions">
-    <button class="nav-toggle" data-menu aria-label="Open menu">☰</button>
+
+    <button
+      class="nav-toggle"
+      data-menu
+      aria-label="Open menu"
+      type="button">
+      ☰
+    </button>
+
   </div>
+
 </header>
+
+
+<!-- MOBILE MENU -->
+
 <div class="mobile-panel">
-  <a href="index.html">Home</a>
-  <a href="events.html">Discover events</a>
-  <a href="organizer.html">Create event</a>
+
+  <a href="index.html">
+    Home
+  </a>
+
+  <a href="events.html">
+    Discover events
+  </a>
+
+  <a href="organizer.html">
+    Create event
+  </a>
+
+  <a href="dashboard.html">
+    My plans
+  </a>
+
+  <a href="tickets.html">
+    My tickets
+  </a>
+
+  <a href="saved.html">
+    Saved plans
+  </a>
+
+  <a href="profile.html">
+    Profile
+  </a>
+
 </div>
 
-<main>
-<section class="hero"><div class="container hero-grid">
-  <div class="reveal">
-    <div class="eyebrow"><i></i> A better way to go out</div>
-    <h1>Make plans.<br><span>Make memories.</span></h1>
-    <p class="hero-copy">Discover events, reserve your place, save what catches your eye and keep every plan together — without the clutter.</p>
-    <div class="hero-actions"><a class="btn btn-cyan" href="events.html" data-magnetic>Explore events →</a><a class="btn btn-ghost" href="#featured">See what’s happening</a></div>
-    <div class="hero-stats"><span><strong data-count="250">0</strong> events</span><span><strong data-count="18">0</strong> categories</span><span><strong data-count="12000">0</strong> guests</span></div>
-  </div>
-  <div class="hero-visual reveal">
-    <div class="hero-photo"></div>
-    <div class="hero-glass"><small>This weekend</small><h3>Neon Garden Sessions</h3><p>Riverfront Warehouse · 7:30 PM</p><div style="display:flex;justify-content:space-between;margin-top:15px"><strong>₹799</strong><a class="btn btn-small btn-cyan" href="event-details.html?id=demo-1">View event</a></div></div>
-    <div class="hero-pill">12 spots left</div>
-  </div>
-</div></section>
-<div class="marquee"><div class="marquee-track"><span>Music <b>✦</b></span><span>Food <b>✦</b></span><span>Design <b>✦</b></span><span>Film <b>✦</b></span><span>Sports <b>✦</b></span><span>Wellness <b>✦</b></span><span>Community <b>✦</b></span><span>Music <b>✦</b></span><span>Food <b>✦</b></span><span>Design <b>✦</b></span></div></div>
-<section class="section" id="featured"><div class="container"><div class="section-head reveal"><div><div class="section-kicker">Curated events</div><h2 class="section-title">Plans worth<br>leaving home for.</h2></div><a class="btn btn-ghost" href="events.html">View all</a></div><div class="event-grid stagger" id="featured-events"><div class="glass-panel panel" style="grid-column:1/-1"><strong>Loading events…</strong><p class="muted">Fetching the latest plans.</p></div></div></div></section>
 
-<section class="section showcase-section"><div class="container">
-  <div class="section-head reveal"><div><div class="section-kicker">Made for your mood</div><h2 class="section-title">Find your kind<br>of night.</h2></div><p class="section-copy section-copy-short">Music, food, ideas, movement and the people who make the city feel alive.</p></div>
-  <div class="interest-grid reveal" id="interest-grid">
-    <button class="interest-tile active" data-interest="Music"><span>01</span><strong>Music</strong><em>Live / DJs / indie</em></button>
-    <button class="interest-tile" data-interest="Food"><span>02</span><strong>Food</strong><em>Tables / tastings</em></button>
-    <button class="interest-tile" data-interest="Design"><span>03</span><strong>Design</strong><em>Talks / workshops</em></button>
-    <button class="interest-tile" data-interest="Film"><span>04</span><strong>Film</strong><em>Screenings / clubs</em></button>
-    <button class="interest-tile" data-interest="Sports"><span>05</span><strong>Sports</strong><em>Runs / games</em></button>
-    <button class="interest-tile" data-interest="Wellness"><span>06</span><strong>Wellness</strong><em>Reset / breathe</em></button>
+<main>
+
+  <!-- HERO -->
+
+  <section class="hero">
+
+    <div class="container hero-grid">
+
+      <div class="reveal">
+
+        <div class="eyebrow">
+          <i></i>
+          A better way to go out
+        </div>
+
+        <h1>
+          Make plans.<br>
+          <span>Make memories.</span>
+        </h1>
+
+        <p class="hero-copy">
+          Discover events, reserve your place, save what catches your eye
+          and keep every plan together — without the clutter.
+        </p>
+
+        <div class="hero-actions">
+
+          <a
+            class="btn btn-cyan"
+            href="events.html"
+            data-magnetic>
+            Explore events →
+          </a>
+
+          <a
+            class="btn btn-ghost"
+            href="#featured">
+            See what’s happening
+          </a>
+
+        </div>
+
+        <div class="hero-stats">
+
+          <span>
+            <strong data-count="250">0</strong>
+            events
+          </span>
+
+          <span>
+            <strong data-count="18">0</strong>
+            categories
+          </span>
+
+          <span>
+            <strong data-count="12000">0</strong>
+            guests
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- HERO VISUAL -->
+
+      <div class="hero-visual reveal">
+
+        <div class="hero-photo"></div>
+
+        <div class="hero-glass">
+
+          <small>
+            This weekend
+          </small>
+
+          <h3>
+            Neon Garden Sessions
+          </h3>
+
+          <p>
+            Riverfront Warehouse · 7:30 PM
+          </p>
+
+          <div
+            style="
+              display:flex;
+              justify-content:space-between;
+              margin-top:15px;
+            ">
+
+            <strong>
+              ₹799
+            </strong>
+
+            <a
+              class="btn btn-small btn-cyan"
+              href="event-details.html?id=demo-1">
+              View event
+            </a>
+
+          </div>
+
+        </div>
+
+        <div class="hero-pill">
+          12 spots left
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CATEGORY MARQUEE -->
+
+  <div class="marquee">
+
+    <div class="marquee-track">
+
+      <span>
+        Music <b>✦</b>
+      </span>
+
+      <span>
+        Food <b>✦</b>
+      </span>
+
+      <span>
+        Design <b>✦</b>
+      </span>
+
+      <span>
+        Film <b>✦</b>
+      </span>
+
+      <span>
+        Sports <b>✦</b>
+      </span>
+
+      <span>
+        Wellness <b>✦</b>
+      </span>
+
+      <span>
+        Community <b>✦</b>
+      </span>
+
+      <span>
+        Music <b>✦</b>
+      </span>
+
+      <span>
+        Food <b>✦</b>
+      </span>
+
+      <span>
+        Design <b>✦</b>
+      </span>
+
+    </div>
+
   </div>
-</div></section>
-<section class="section"><div class="container"><div class="section-head reveal"><div><div class="section-kicker">Picked for you</div><h2 class="section-title" style="font-size:48px">Because you might<br>like these.</h2></div><a class="btn btn-ghost" href="events.html">See all events</a></div><div class="event-grid stagger" id="for-you-events"></div></div></section>
-<section class="section"><div class="container"><div class="showcase-banner reveal"><div class="showcase-banner-copy"><div class="section-kicker">Your next memory</div><h2 class="serif">A good event is<br>better with good people.</h2><p>Save a plan, invite a friend, and arrive with everything you need.</p><div class="hero-actions"><a class="btn btn-cyan" href="events.html">Explore the city →</a><a class="btn btn-ghost" href="dashboard.html">Open my plans</a></div></div><div class="people-orbit"><div class="orbit-card orbit-a">🎟️<strong>2 seats</strong><small>Reserved</small></div><div class="orbit-card orbit-b">♥<strong>Saved</strong><small>12 events</small></div><div class="orbit-card orbit-c">✦<strong>Tonight</strong><small>7:30 PM</small></div><div class="orbit-core">E</div></div></div></div></section>
-<section class="section"><div class="container glass-panel" style="padding:30px;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center">
-  <div class="reveal"><div class="section-kicker">Everything in one place</div><h2 class="section-title" style="font-size:48px">From first idea to full room.</h2><p class="section-copy">EventSphere connects discovery, registration, tickets, organizers and event operations in one experience.</p></div>
-  <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="glass-panel" style="padding:20px"><div style="font-size:28px">🎟️</div><strong>Tickets</strong><p class="muted">Reserve in seconds.</p></div>
-    <div class="glass-panel" style="padding:20px"><div style="font-size:28px">📍</div><strong>Venues</strong><p class="muted">Know where to go.</p></div>
-    <div class="glass-panel" style="padding:20px"><div style="font-size:28px">❤️</div><strong>Saved plans</strong><p class="muted">Never lose an idea.</p></div>
-    <div class="glass-panel" style="padding:20px"><div style="font-size:28px">📊</div><strong>Organizer tools</strong><p class="muted">Run the room.</p></div>
-  </div>
-</div></section>
+
+
+  <!-- FEATURED EVENTS -->
+
+  <section
+    class="section"
+    id="featured">
+
+    <div class="container">
+
+      <div class="section-head reveal">
+
+        <div>
+
+          <div class="section-kicker">
+            Curated events
+          </div>
+
+          <h2 class="section-title">
+            Plans worth<br>
+            leaving home for.
+          </h2>
+
+        </div>
+
+        <a
+          class="btn btn-ghost"
+          href="events.html">
+          View all
+        </a>
+
+      </div>
+
+
+      <div
+        class="event-grid stagger"
+        id="featured-events">
+
+        <div
+          class="glass-panel panel"
+          style="grid-column:1/-1">
+
+          <strong>
+            Loading events…
+          </strong>
+
+          <p class="muted">
+            Fetching the latest plans.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- INTERESTS -->
+
+  <section class="section showcase-section">
+
+    <div class="container">
+
+      <div class="section-head reveal">
+
+        <div>
+
+          <div class="section-kicker">
+            Made for your mood
+          </div>
+
+          <h2 class="section-title">
+            Find your kind<br>
+            of night.
+          </h2>
+
+        </div>
+
+        <p class="section-copy section-copy-short">
+          Music, food, ideas, movement and the people
+          who make the city feel alive.
+        </p>
+
+      </div>
+
+
+      <div
+        class="interest-grid reveal"
+        id="interest-grid">
+
+        <button
+          class="interest-tile active"
+          data-interest="Music">
+
+          <span>01</span>
+          <strong>Music</strong>
+          <em>Live / DJs / indie</em>
+
+        </button>
+
+
+        <button
+          class="interest-tile"
+          data-interest="Food">
+
+          <span>02</span>
+          <strong>Food</strong>
+          <em>Tables / tastings</em>
+
+        </button>
+
+
+        <button
+          class="interest-tile"
+          data-interest="Design">
+
+          <span>03</span>
+          <strong>Design</strong>
+          <em>Talks / workshops</em>
+
+        </button>
+
+
+        <button
+          class="interest-tile"
+          data-interest="Film">
+
+          <span>04</span>
+          <strong>Film</strong>
+          <em>Screenings / clubs</em>
+
+        </button>
+
+
+        <button
+          class="interest-tile"
+          data-interest="Sports">
+
+          <span>05</span>
+          <strong>Sports</strong>
+          <em>Runs / games</em>
+
+        </button>
+
+
+        <button
+          class="interest-tile"
+          data-interest="Wellness">
+
+          <span>06</span>
+          <strong>Wellness</strong>
+          <em>Reset / breathe</em>
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FOR YOU -->
+
+  <section class="section">
+
+    <div class="container">
+
+      <div class="section-head reveal">
+
+        <div>
+
+          <div class="section-kicker">
+            Picked for you
+          </div>
+
+          <h2
+            class="section-title"
+            style="font-size:48px">
+
+            Because you might<br>
+            like these.
+
+          </h2>
+
+        </div>
+
+        <a
+          class="btn btn-ghost"
+          href="events.html">
+          See all events
+        </a>
+
+      </div>
+
+
+      <div
+        class="event-grid stagger"
+        id="for-you-events">
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- SHOWCASE BANNER -->
+
+  <section class="section">
+
+    <div class="container">
+
+      <div class="showcase-banner reveal">
+
+        <div class="showcase-banner-copy">
+
+          <div class="section-kicker">
+            Your next memory
+          </div>
+
+          <h2 class="serif">
+            A good event is<br>
+            better with good people.
+          </h2>
+
+          <p>
+            Save a plan, invite a friend,
+            and arrive with everything you need.
+          </p>
+
+          <div class="hero-actions">
+
+            <a
+              class="btn btn-cyan"
+              href="events.html">
+              Explore the city →
+            </a>
+
+            <a
+              class="btn btn-ghost"
+              href="dashboard.html">
+              Open my plans
+            </a>
+
+          </div>
+
+        </div>
+
+
+        <div class="people-orbit">
+
+          <div class="orbit-card orbit-a">
+            🎟️
+            <strong>2 seats</strong>
+            <small>Reserved</small>
+          </div>
+
+          <div class="orbit-card orbit-b">
+            ♥
+            <strong>Saved</strong>
+            <small>12 events</small>
+          </div>
+
+          <div class="orbit-card orbit-c">
+            ✦
+            <strong>Tonight</strong>
+            <small>7:30 PM</small>
+          </div>
+
+          <div class="orbit-core">
+            E
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FEATURES -->
+
+  <section class="section">
+
+    <div class="container glass-panel home-features"
+      style="
+        padding:30px;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:30px;
+        align-items:center;
+      ">
+
+      <div class="reveal">
+
+        <div class="section-kicker">
+          Everything in one place
+        </div>
+
+        <h2
+          class="section-title"
+          style="font-size:48px">
+
+          From first idea to full room.
+
+        </h2>
+
+        <p class="section-copy">
+
+          EventSphere connects discovery,
+          registration, tickets, organizers
+          and event operations in one experience.
+
+        </p>
+
+      </div>
+
+
+      <div
+        class="reveal"
+        style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:10px;
+        ">
+
+        <div
+          class="glass-panel"
+          style="padding:20px">
+
+          <div style="font-size:28px">
+            🎟️
+          </div>
+
+          <strong>
+            Tickets
+          </strong>
+
+          <p class="muted">
+            Reserve in seconds.
+          </p>
+
+        </div>
+
+
+        <div
+          class="glass-panel"
+          style="padding:20px">
+
+          <div style="font-size:28px">
+            📍
+          </div>
+
+          <strong>
+            Venues
+          </strong>
+
+          <p class="muted">
+            Know where to go.
+          </p>
+
+        </div>
+
+
+        <div
+          class="glass-panel"
+          style="padding:20px">
+
+          <div style="font-size:28px">
+            ❤️
+          </div>
+
+          <strong>
+            Saved plans
+          </strong>
+
+          <p class="muted">
+            Never lose an idea.
+          </p>
+
+        </div>
+
+
+        <div
+          class="glass-panel"
+          style="padding:20px">
+
+          <div style="font-size:28px">
+            📊
+          </div>
+
+          <strong>
+            Organizer tools
+          </strong>
+
+          <p class="muted">
+            Run the room.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
 </main>
-<footer class="footer"><div class="container footer-grid"><div><strong>EventSphere</strong><div class="muted">Discover. Reserve. Experience.</div></div><div class="footer-links"><a href="events.html">Events</a><a href="organizer.html">Organizers</a><a href="dashboard.html">My plans</a><a href="tickets.html">My tickets</a><a href="saved.html">Saved plans</a><a href="profile.html">Profile</a><a href="login.html">Login</a></div></div></footer>
+
+
+<!-- FOOTER -->
+
+<footer class="footer">
+
+  <div class="container footer-grid">
+
+    <div>
+
+      <strong>
+        EventSphere
+      </strong>
+
+      <div class="muted">
+        Discover. Reserve. Experience.
+      </div>
+
+    </div>
+
+
+    <div class="footer-links">
+
+      <a href="events.html">
+        Events
+      </a>
+
+      <a href="organizer.html">
+        Organizers
+      </a>
+
+      <a href="dashboard.html">
+        My plans
+      </a>
+
+      <a href="tickets.html">
+        My tickets
+      </a>
+
+      <a href="saved.html">
+        Saved plans
+      </a>
+
+      <a href="profile.html">
+        Profile
+      </a>
+
+      <a href="login.html">
+        Login
+      </a>
+
+    </div>
+
+  </div>
+
+</footer>
+
+
+<!-- TOASTS -->
 
 <div id="toasts"></div>
+
+
+<!-- JAVASCRIPT -->
+
 <script src="js/app.js"></script>
-<script src="js/event-card.js"></script><script src="js/home.js"></script><script src="js/showcase.js"></script>
-</body></html>
+
+<script src="js/event-card.js"></script>
+
+<script src="js/home.js"></script>
+
+<script src="js/showcase.js"></script>
+
+</body>
+
+</html>

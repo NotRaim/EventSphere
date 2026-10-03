@@ -6,19 +6,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const search = document.querySelector('#admin-search');
   const status = document.querySelector('#admin-status');
   const messagesGrid = document.querySelector('#admin-messages');
+  const usersGrid = document.querySelector('#admin-users-list');
+  const userSearch = document.querySelector('#admin-user-search');
   const reportsGrid = document.querySelector('#admin-reports');
 
   let events = [];
+  let users = [];
 
   const fmt = value => Number(value || 0).toLocaleString('en-IN');
 
   async function load() {
     try {
-      const [stats, allEvents, messages, reports] = await Promise.all([
+      const [stats, allEvents, messages, reports, allUsers] = await Promise.all([
         ES.api('/admin/stats'),
         ES.api('/admin/events'),
         ES.api('/admin/messages'),
-        ES.api('/event-reports/admin')
+        ES.api('/event-reports/admin'),
+        ES.api('/admin/users')
       ]);
 
       document.querySelector('#admin-users').textContent = fmt(stats.users);
@@ -30,6 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       draw();
       drawMessages(messages);
       drawReports(reports);
+      users=Array.isArray(allUsers)?allUsers:[];
+      drawUsers();
     } catch (err) {
       ES.toast(err.message || 'Could not load admin data', 'error');
     }
@@ -61,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const q = String(search?.value || '').toLowerCase().trim();
     const st = status?.value || 'all';
 
-    const rows = events.filter(e => String(e.status||'')!=='cancelled').filter(e => {
+    const rows = events.filter(e => {
       const hay = `${e.title || ''} ${e.category || ''} ${e.city || ''} ${e.organizerName || ''}`.toLowerCase();
       return (!q || hay.includes(q)) && (st === 'all' || String(e.status || '') === st);
     });
@@ -78,38 +84,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="toolbar">
           <span class="pill">${ES.esc(e.status || 'published')}</span>
           <a class="btn btn-small btn-ghost" href="event-details.html?id=${encodeURIComponent(e.id)}">View</a>
-          ${e.status!=='published'?`<button class="btn btn-small btn-cyan" data-publish="${ES.esc(e.id)}">Publish</button>`:''}
-          ${e.status!=='rejected'?`<button class="btn btn-small btn-ghost" data-reject="${ES.esc(e.id)}">Reject</button>`:''}
-          ${e.status!=='cancelled'?`<button class="btn btn-small btn-ghost" data-cancel="${ES.esc(e.id)}">Cancel event</button>`:''}
-          <button class="btn btn-small btn-danger" data-delete-event="${ES.esc(e.id)}">Remove</button>
+          <button class="btn btn-small btn-cyan" data-publish="${ES.esc(e.id)}">Publish</button>
+          <button class="btn btn-small btn-ghost" data-reject="${ES.esc(e.id)}">Reject</button>
         </div>
       </article>
     `).join('') : '<div class="empty">No events match your filters.</div>';
 
     grid.querySelectorAll('[data-publish]').forEach(btn => btn.onclick = () => setStatus(btn.dataset.publish, 'published'));
     grid.querySelectorAll('[data-reject]').forEach(btn => btn.onclick = () => setStatus(btn.dataset.reject, 'rejected'));
-    grid.querySelectorAll('[data-cancel]').forEach(btn => btn.onclick = () => cancelEvent(btn.dataset.cancel));
-    grid.querySelectorAll('[data-delete-event]').forEach(btn => btn.onclick = () => removeEvent(btn.dataset.deleteEvent));
   }
 
-  async function cancelEvent(id) {
-    if(!confirm('Cancel this event? It will disappear from public event listings and active tickets will be cancelled.'))return;
-    try{
-      await ES.api('/events/'+encodeURIComponent(id),{method:'PATCH',body:{status:'cancelled'}});
-      events=events.filter(x=>String(x.id)!==String(id));
-      ES.toast('Event cancelled and removed from public listings','success');
-      draw();
-    }catch(err){ES.toast(err.message||'Could not cancel event','error')}
-  }
-
-  async function removeEvent(id) {
-    if(!confirm('Permanently remove this event? This cannot be undone.'))return;
-    try{
-      await ES.api('/events/'+encodeURIComponent(id),{method:'DELETE'});
-      events=events.filter(x=>String(x.id)!==String(id));
-      ES.toast('Event removed from EventSphere','success');
-      draw();
-    }catch(err){ES.toast(err.message||'Could not remove event','error')}
+  function drawUsers(){
+    if(!usersGrid)return;
+    const q=String(userSearch?.value||'').toLowerCase().trim();
+    const rows=users.filter(u=>!q||`${u.name||''} ${u.email||''} ${u.role||''}`.toLowerCase().includes(q));
+    usersGrid.innerHTML=rows.length?rows.map(u=>`<article class="list-item"><div><strong>${ES.esc(u.name||'Member')}</strong><small class="muted">${ES.esc(u.email||'')} · ${ES.esc(u.role||'user')}</small></div><div class="toolbar"><span class="pill">${ES.esc(u.status||'active')}</span>${u.role==='admin'?'':`<button class="btn btn-small ${u.status==='suspended'?'btn-cyan':'btn-danger'}" data-user-status="${ES.esc(u.id)}" data-next-status="${u.status==='suspended'?'active':'suspended'}">${u.status==='suspended'?'Restore':'Suspend'}</button>`}</div></article>`).join(''):'<div class="empty">No users match your search.</div>';
+    usersGrid.querySelectorAll('[data-user-status]').forEach(btn=>btn.onclick=async()=>{try{const updated=await ES.api('/admin/users/'+encodeURIComponent(btn.dataset.userStatus)+'/status',{method:'PATCH',body:{status:btn.dataset.nextStatus}});const i=users.findIndex(x=>String(x.id)===String(updated.id));if(i>=0)users[i]=updated;drawUsers();ES.toast(`User ${updated.status==='suspended'?'suspended':'restored'} ✓`,'success')}catch(err){ES.toast(err.message,'error')}});
   }
 
   async function setStatus(id, nextStatus) {
@@ -129,5 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   search?.addEventListener('input', draw);
   status?.addEventListener('change', draw);
+  userSearch?.addEventListener('input', drawUsers);
   await load();
 });

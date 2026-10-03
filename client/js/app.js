@@ -48,46 +48,37 @@ const ES = (() => {
       try{ data = await res.json(); }catch{}
       if(!res.ok) return fallback;
       const list = Array.isArray(data) ? data : (data.events || data.data || []);
-      const clean=list.filter(e=>e&&String(e.status||'published')==='published'&&String(e.visibility||'public')!=='private');
-      return clean.length ? clean : fallback;
+      return Array.isArray(list) && list.length ? list : fallback;
     }catch{
       return fallback;
     }
-  }
-
-  async function uploadImage(file){
-    if(!file) return '';
-    if(!/^image\//i.test(file.type)) throw new Error('Please choose an image file');
-    if(file.size>5*1024*1024) throw new Error('Each image must be 5 MB or smaller');
-    const compressed=await new Promise((resolve,reject)=>{
-      const reader=new FileReader();
-      reader.onerror=()=>reject(new Error('Could not read image'));
-      reader.onload=()=>{
-        const img=new Image();
-        img.onerror=()=>reject(new Error('Could not process image'));
-        img.onload=()=>{
-          const max=1800,scale=Math.min(1,max/Math.max(img.width,img.height));
-          const canvas=document.createElement('canvas');
-          canvas.width=Math.max(1,Math.round(img.width*scale));
-          canvas.height=Math.max(1,Math.round(img.height*scale));
-          const ctx=canvas.getContext('2d');
-          ctx.drawImage(img,0,0,canvas.width,canvas.height);
-          canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not compress image')),'image/webp',.82);
-        };
-        img.src=reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-    const fd=new FormData();
-    fd.append('image',compressed,`${String(file.name||'image').replace(/\.[^.]+$/,'')}.webp`);
-    const result=await api('/uploads/image',{method:'POST',body:fd});
-    return result.url||'';
   }
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function date(v){return new Date(v).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
   function time(v=''){const [h,m]=v.split(':').map(Number);if(Number.isNaN(h))return v;return `${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`}
   function img(v){return v||'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'}
+  async function imageFileToDataUrl(file, maxSize=1400, quality=.78){
+    if(!file) return '';
+    if(!/^image\/(png|jpe?g|webp|avif)$/i.test(file.type)) throw new Error('Please choose a JPG, PNG, WEBP or AVIF image.');
+    if(file.size>8*1024*1024) throw new Error('Image must be smaller than 8 MB.');
+    const source=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Could not read image'));r.readAsDataURL(file)});
+    return await new Promise((resolve,reject)=>{
+      const image=new Image();
+      image.onload=()=>{
+        const scale=Math.min(1,maxSize/Math.max(image.naturalWidth,image.naturalHeight));
+        const w=Math.max(1,Math.round(image.naturalWidth*scale)),h=Math.max(1,Math.round(image.naturalHeight*scale));
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      image.onerror=()=>reject(new Error('Could not decode image'));
+      image.src=source;
+    });
+  }
+  async function imageFilesToDataUrls(files, limit=6){
+    const list=[...files||[]].slice(0,limit); return Promise.all(list.map(file=>imageFileToDataUrl(file)));
+  }
   function seats(e){return Math.max(0,(e.capacity||0)-(e.registeredCount||0))}
   function toast(message,type='info'){
     let wrap=document.querySelector('.toast-wrap');if(!wrap){wrap=document.createElement('div');wrap.className='toast-wrap';document.body.append(wrap)}
@@ -397,9 +388,7 @@ const ES = (() => {
         }catch{drawMobileNotifications(notifications())}
       };
 
-      mobileNotifyToggle?.addEventListener('click',async ev=>{
-        ev.preventDefault();
-        ev.stopPropagation();
+      mobileNotifyToggle?.addEventListener('click',async()=>{
         const opening=mobileNotifyPanel?.hidden!==false;
         if(mobileNotifyPanel)mobileNotifyPanel.hidden=!opening;
         if(opening)await refreshMobileNotifications();
@@ -482,17 +471,8 @@ const ES = (() => {
 
     await load();
 
-    trigger?.addEventListener('click',async ev=>{
-      ev.preventDefault();
-      ev.stopPropagation();
+    trigger?.addEventListener('click',async()=>{
       const opening=!dropdown.classList.contains('open');
-      document.querySelectorAll('.notification-dropdown.open').forEach(x=>{
-        if(x!==dropdown){
-          x.classList.remove('open');
-          x.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false');
-        }
-      });
-      dropdown.classList.toggle('open',opening);
       trigger.setAttribute('aria-expanded',opening?'true':'false');
       if(opening) await load();
     });
@@ -563,7 +543,7 @@ const ES = (() => {
   async function remoteProfile(data){ const r=await api('/me/profile',{method:'PUT',body:data}); const token=session.getToken(); if(token) session.set(token,r.user,true); return r.user; }
   function categoryClass(category){return 'ticket-'+String(category||'community').toLowerCase().replace(/[^a-z]/g,'')}
 
-  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar,uploadImage};
+  return {API,demo,session,api,events,esc,date,time,img,seats,registrationDeadlinePassed,isEventBookable,toast,logout,guard,hydrateHeader,mountNotificationCenter,recommendEvents,recommendationScore,notificationTime,remoteFavorites,remoteToggleSaved,remoteTickets,remotePrefs,remoteSavePrefs,remoteRate,remoteNotifications,remoteReadAllNotifications,remoteProfile,categoryClass,savedEvents,toggleSaved,tickets,addTicket,notifications,pushNotification,markNotificationsRead,profilePrefs,saveProfilePrefs,interests,setInterests,recentViews,trackView,getRating,setRating,addToCalendar};
 
 })();
 
@@ -592,15 +572,22 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  // Close notification popovers only when the click is outside them.
-  document.addEventListener('click',e=>{
-    document.querySelectorAll('.notification-dropdown.open').forEach(box=>{
-      if(!box.contains(e.target)){
-        box.classList.remove('open');
-        box.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false');
-      }
+  // Notification dropdowns: one reliable outside-click handler for every page.
+  document.querySelectorAll('.notification-dropdown').forEach(box=>{
+    box.querySelector('.notification-trigger')?.addEventListener('click',e=>{
+      e.preventDefault();e.stopPropagation();
+      const opening=!box.classList.contains('open');
+      document.querySelectorAll('.notification-dropdown.open').forEach(x=>x!==box&&x.classList.remove('open'));
+      box.classList.toggle('open',opening);
+      box.querySelector('.notification-trigger')?.setAttribute('aria-expanded',opening?'true':'false');
     });
   });
+  document.addEventListener('click',e=>{
+    document.querySelectorAll('.notification-dropdown.open').forEach(box=>{
+      if(!box.contains(e.target)){box.classList.remove('open');box.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false');}
+    });
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.notification-dropdown.open').forEach(box=>{box.classList.remove('open');box.querySelector('.notification-trigger')?.setAttribute('aria-expanded','false')})});
 
   // Mobile menu
   const toggle=document.querySelector('[data-menu]');

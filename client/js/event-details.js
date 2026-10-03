@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   list = await ES.events();
-  if (!e) e = list.find(x => String(x.id) === String(id)) || list[0];
+  if (!e && id && String(id).startsWith('demo-')) e = list.find(x => String(x.id) === String(id));
+  if (!e && !id) e = list[0];
 
   const remoteFavs = ES.session.getToken() ? await ES.remoteFavorites() : [];
 
@@ -28,7 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  if(String(e.status||'published')!=='published' || String(e.visibility||'public')==='private'){ root.innerHTML='<div class="glass-panel panel" style="padding:30px"><h2>Event unavailable</h2><p class="muted">This event is no longer available.</p><a class="btn btn-cyan" href="events.html">Back to events</a></div>'; return; }
   const isDatabaseEvent = /^[a-f0-9]{24}$/i.test(String(e.id));
   const salesClosed = ES.registrationDeadlinePassed(e);
   const soldOut = ES.seats(e) <= 0;
@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h2 class="section-title" style="font-size:42px">Simple schedule.</h2>
         <div class="timeline">${agenda.map(a => `<div class="timeline-item"><div class="timeline-time">${a[0]}</div><div><strong>${a[1]}</strong><p class="muted">A short, useful moment in the experience.</p></div></div>`).join('')}</div>
       </div>
-      ${Array.isArray(e.gallery)&&e.gallery.length?`<section class="event-gallery glass-panel reveal"><div class="section-kicker">Event gallery</div><div class="event-gallery-grid">${e.gallery.slice(0,6).map((src,i)=>`<img src="${ES.esc(src)}" alt="${ES.esc(e.title)} photo ${i+1}" loading="lazy">`).join('')}</div></section>`:''}
       <div class="event-community glass-panel">
         <div><div class="section-kicker">Community pulse</div><h3>Rate this event</h3><p class="muted">Your rating helps shape EventSphere recommendations.</p></div>
         <div class="rating-row" id="rating-row">${[1, 2, 3, 4, 5].map(n => `<button data-rate="${n}">${n <= ES.getRating(e.id) ? '★' : '☆'}</button>`).join('')}</div>
@@ -117,6 +116,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       ${!isDatabaseEvent ? '<p class="muted" style="font-size:11px;margin-top:12px">Preview event: booking becomes available when this event exists in the EventSphere database.</p>' : ''}
     </aside>
   </div>`;
+
+  const gallery=Array.isArray(e.gallery)?e.gallery.filter(Boolean).slice(0,6):[];
+  if(gallery.length){
+    const section=document.createElement('section');section.className='event-gallery glass-panel panel reveal';
+    section.innerHTML=`<div class="section-head"><div><div class="section-kicker">Event gallery</div><h3>See the atmosphere.</h3></div></div><div class="event-gallery-grid">${gallery.map((src,i)=>`<button type="button" class="event-gallery-item" data-gallery-src="${ES.esc(src)}"><img src="${ES.esc(src)}" alt="Event gallery ${i+1}"></button>`).join('')}</div>`;
+    root.append(section);
+    section.querySelectorAll('[data-gallery-src]').forEach(b=>b.onclick=()=>{const backdrop=document.createElement('div');backdrop.className='gallery-lightbox';backdrop.innerHTML=`<button type="button" aria-label="Close">×</button><img src="${b.dataset.gallerySrc}" alt="Event gallery">`;document.body.append(backdrop);backdrop.querySelector('button').onclick=()=>backdrop.remove();backdrop.onclick=ev=>{if(ev.target===backdrop)backdrop.remove()};});
+  }
 
   document.querySelectorAll('[data-tab]').forEach(tab => tab.onclick = () => {
     document.querySelectorAll('[data-tab]').forEach(x => x.classList.remove('active'));
