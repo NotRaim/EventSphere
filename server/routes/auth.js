@@ -232,14 +232,26 @@ router.post('/login', async (req, res) => {
 });
 
 
-        if (
-    !u ||
-    !u.passwordHash ||
-    !(await bcrypt.compare(
-        password,
-        u.passwordHash
-    ))
-) {
+        if (!u || !u.passwordHash) {
+    console.log('LOGIN FAILED: user or password hash missing');
+
+    return res.status(401).json({
+        message: 'Invalid email or password'
+    });
+}
+
+const passwordMatches = await bcrypt.compare(
+    password,
+    u.passwordHash
+);
+
+console.log('PASSWORD CHECK:', {
+    passwordMatches,
+    hashPrefix: u.passwordHash.substring(0, 4),
+    hashLength: u.passwordHash.length
+});
+
+if (!passwordMatches) {
     return res.status(401).json({
         message: 'Invalid email or password'
     });
