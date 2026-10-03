@@ -521,8 +521,6 @@ app.use(
    DATABASE / ADMIN INITIALIZATION
 ========================================================= */
 
-let adminInitPromise = null;
-
 async function ensureAdmin() {
     if (adminInitPromise) return adminInitPromise;
 
@@ -530,23 +528,99 @@ async function ensureAdmin() {
         const User = require('./models/User');
         const bcrypt = require('bcryptjs');
 
-        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+        if (
+            !process.env.ADMIN_EMAIL ||
+            !process.env.ADMIN_PASSWORD
+        ) {
             return;
         }
 
-        const adminEmail = process.env.ADMIN_EMAIL.toLowerCase().trim();
-        const adminExists = await User.exists({ email: adminEmail });
+        const adminEmail =
+            process.env.ADMIN_EMAIL
+                .toLowerCase()
+                .trim();
 
-        if (!adminExists) {
-            await User.create({
-                name: process.env.ADMIN_NAME || 'EventAdmin',
+        const adminPassword =
+            String(process.env.ADMIN_PASSWORD);
+
+        let admin = await User.findOne({
+            email: adminEmail
+        });
+
+        /* =====================================================
+           CREATE ADMIN IF IT DOES NOT EXIST
+        ===================================================== */
+
+        if (!admin) {
+            const passwordHash =
+                await bcrypt.hash(
+                    adminPassword,
+                    12
+                );
+
+            admin = await User.create({
+                name:
+                    process.env.ADMIN_NAME ||
+                    'EventAdmin',
+
                 email: adminEmail,
-                passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD, 12),
-                role: 'admin'
+
+                passwordHash,
+
+                role: 'admin',
+
+                status: 'active'
             });
-            console.log(`✅ Admin account created: ${adminEmail}`);
+
+            console.log(
+                `✅ Admin account created: ${adminEmail}`
+            );
+
+            return;
         }
-    })();
+
+
+        /* =====================================================
+           REPAIR EXISTING ADMIN
+        ===================================================== */
+
+        let changed = false;
+
+        if (!admin.passwordHash) {
+            admin.passwordHash =
+                await bcrypt.hash(
+                    adminPassword,
+                    12
+                );
+
+            changed = true;
+
+            console.log(
+                `🔧 Admin password hash repaired: ${adminEmail}`
+            );
+        }
+
+        if (admin.role !== 'admin') {
+            admin.role = 'admin';
+            changed = true;
+        }
+
+        if (admin.status !== 'active') {
+            admin.status = 'active';
+            changed = true;
+        }
+
+        if (changed) {
+            await admin.save();
+
+            console.log(
+                `🔧 Admin account repaired: ${adminEmail}`
+            );
+        }
+    })().catch(error => {
+        adminInitPromise = null;
+        throw error;
+    });
 
     return adminInitPromise;
 }
