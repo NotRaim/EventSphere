@@ -37,8 +37,14 @@ function cleanEventBody(body={}){
   if(out.price!==undefined){ const n=Number(out.price); if(!Number.isFinite(n)||n<0||n>10000000) throw new Error('Invalid price'); out.price=n; }
   if(out.capacity!==undefined){ const n=Number(out.capacity); if(!Number.isInteger(n)||n<1||n>1000000) throw new Error('Invalid capacity'); out.capacity=n; }
   if(out.ticketTypes!==undefined)out.ticketTypes=normalizeTicketTypes(out.ticketTypes,out.price??0,out.capacity??100);
-  if(out.gallery!==undefined)out.gallery=Array.isArray(out.gallery)?out.gallery.map(x=>String(x||'').trim()).filter(Boolean).slice(0,6):[];
-  if(out.image!==undefined)out.image=String(out.image||'').trim().slice(0,2000);
+  if(out.image!==undefined){
+    out.image=String(out.image||'').trim();
+    if(out.image.length>1800000) throw new Error('Cover image is too large. Please choose a smaller image.');
+  }
+  if(out.gallery!==undefined){
+    out.gallery=Array.isArray(out.gallery)?out.gallery.map(x=>String(x||'').trim()).filter(Boolean).slice(0,6):[];
+    if(out.gallery.some(x=>x.length>1800000)) throw new Error('One of the gallery images is too large. Please choose smaller images.');
+  }
   return out;
 }
 
