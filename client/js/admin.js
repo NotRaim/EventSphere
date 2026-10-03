@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const search = document.querySelector('#admin-search');
   const status = document.querySelector('#admin-status');
   const messagesGrid = document.querySelector('#admin-messages');
+  const reportsGrid = document.querySelector('#admin-reports');
 
   let events = [];
 
@@ -13,10 +14,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function load() {
     try {
-      const [stats, allEvents, messages] = await Promise.all([
+      const [stats, allEvents, messages, reports] = await Promise.all([
         ES.api('/admin/stats'),
         ES.api('/admin/events'),
-        ES.api('/admin/messages')
+        ES.api('/admin/messages'),
+        ES.api('/event-reports/admin')
       ]);
 
       document.querySelector('#admin-users').textContent = fmt(stats.users);
@@ -27,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       events = Array.isArray(allEvents) ? allEvents : [];
       draw();
       drawMessages(messages);
+      drawReports(reports);
     } catch (err) {
       ES.toast(err.message || 'Could not load admin data', 'error');
     }
@@ -45,6 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <span class="pill">${ES.esc(m.status || 'new')}</span>
       </article>`).join('') : '<div class="empty">No support messages yet.</div>';
+  }
+
+  function drawReports(reports) {
+    if (!reportsGrid) return;
+    const list=Array.isArray(reports)?reports:[];
+    reportsGrid.innerHTML=list.length?list.map(r=>`<article class="list-item admin-report-row"><div><strong>${ES.esc(r.eventId?.title||'Event')}</strong><small class="muted">${ES.esc(r.userId?.name||'Member')} · ${ES.esc(r.userId?.email||'')} · ${new Date(r.createdAt).toLocaleString('en-IN')}</small><p><span class="pill">${ES.esc(r.reason)}</span> ${ES.esc(r.details||'No extra details')}</p></div><div class="toolbar"><span class="pill">${ES.esc(r.status)}</span>${r.status==='open'?`<button class="btn btn-small btn-cyan" data-report-action="reviewed" data-report-id="${ES.esc(r.id)}">Mark reviewed</button><button class="btn btn-small btn-ghost" data-report-action="dismissed" data-report-id="${ES.esc(r.id)}">Dismiss</button>`:''}</div></article>`).join(''):'<div class="empty">No community reports yet.</div>';
+    reportsGrid.querySelectorAll('[data-report-action]').forEach(btn=>btn.onclick=async()=>{try{await ES.api('/event-reports/admin/'+encodeURIComponent(btn.dataset.reportId),{method:'PATCH',body:{status:btn.dataset.reportAction}});ES.toast('Report updated ✓','success');await load()}catch(err){ES.toast(err.message||'Could not update report','error')}});
   }
 
   function draw() {

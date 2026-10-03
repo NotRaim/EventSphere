@@ -1,10 +1,20 @@
 
 document.addEventListener('DOMContentLoaded',async()=>{
   const grid=document.querySelector('#events-grid'),search=document.querySelector('#event-search');
-  const source=await ES.events();
-  const all=source.filter(e=>!ES.registrationDeadlinePassed(e));
-  const expired=source.length-all.length;
-  let cat='All', sort='date';
+  const all=(await ES.events()).filter(e=>!ES.registrationDeadlinePassed(e));let cat='All', sort='date';
+  const loadRecommendations=async()=>{
+    if(!ES.session.getToken())return;
+    try{
+      const recs=await ES.api('/recommendations');
+      if(!Array.isArray(recs)||!recs.length)return;
+      const section=document.querySelector('#recommendations-section');
+      const rg=document.querySelector('#recommendations-grid');
+      if(!section||!rg)return;
+      section.hidden=false;
+      rg.innerHTML=recs.slice(0,3).map(e=>renderEventCard(e)).join('');
+      activateCards(rg);requestAnimationFrame(()=>rg.querySelectorAll('.reveal').forEach(x=>x.classList.add('visible')));
+    }catch{}
+  };
   function draw(){
     const q=(search.value||'').trim().toLowerCase();
     const city=(document.querySelector('#city-filter')?.value||'').trim().toLowerCase();
@@ -23,8 +33,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
     else if(sort==='popular')list.sort((a,b)=>(b.registeredCount||0)-(a.registeredCount||0));
     else list.sort((a,b)=>new Date(a.date)-new Date(b.date));
     document.querySelector('#result-count').textContent=`${list.length} event${list.length===1?'':'s'} found`;
-    const expiredNote=document.querySelector('#expired-note');
-    if(expiredNote) expiredNote.textContent=expired?`${expired} event${expired===1?' has':'s have'} closed ticket sales and ${expired===1?'is':'are'} hidden.`:'';
     grid.innerHTML=list.length?list.map(renderEventCard).join(''):`<div class="glass-panel panel" style="grid-column:1/-1"><h3>No events found</h3><p class="muted">Try a different search or category.</p></div>`;
     activateCards(grid);requestAnimationFrame(()=>grid.querySelectorAll('.reveal').forEach(x=>x.classList.add('visible')));
   }
@@ -34,4 +42,5 @@ document.addEventListener('DOMContentLoaded',async()=>{
   search.addEventListener('input',draw);
   document.querySelector('#sort')?.addEventListener('change',e=>{sort=e.target.value;draw()});
   draw();
+  loadRecommendations();
 });

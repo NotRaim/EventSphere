@@ -1,1 +1,17 @@
-const mongoose=require('mongoose');const s=new mongoose.Schema({ticketCode:{type:String,unique:true,index:true},verificationSig:{type:String,required:true},userId:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true},eventId:{type:mongoose.Schema.Types.ObjectId,ref:'Event',required:true},orderId:{type:mongoose.Schema.Types.ObjectId,ref:'Order'},eventSnapshot:{title:String,category:String,date:String,time:String,venue:String,city:String,image:String,price:Number},quantity:{type:Number,min:1,default:1},amountPaid:{type:Number,default:0},status:{type:String,enum:['valid','used','cancelled','refunded'],default:'valid'},checkedInAt:Date,checkedInBy:{type:mongoose.Schema.Types.ObjectId,ref:'User'}},{timestamps:true});module.exports=mongoose.model('Ticket',s);
+const mongoose=require('mongoose');
+
+const s=new mongoose.Schema({
+  ticketCode:{type:String,unique:true,index:true},
+  verificationSig:{type:String,required:true},
+  userId:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true},
+  eventId:{type:mongoose.Schema.Types.ObjectId,ref:'Event',required:true},
+  orderId:{type:mongoose.Schema.Types.ObjectId,ref:'Order'},
+  eventSnapshot:{title:String,category:String,date:String,time:String,venue:String,city:String,image:String,price:Number},
+  ticketType:{name:String,price:Number,benefits:[String]},
+  quantity:{type:Number,min:1,default:1},
+  amountPaid:{type:Number,default:0},
+  status:{type:String,enum:['valid','used','cancelled','refunded'],default:'valid'},
+  checkedInAt:Date,
+  checkedInBy:{type:mongoose.Schema.Types.ObjectId,ref:'User'}
+},{timestamps:true});
+module.exports=mongoose.model('Ticket',s);

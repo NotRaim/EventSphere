@@ -1,13 +1,24 @@
-const router=require('express').Router();const Ticket=require('../models/Ticket');const Event=require('../models/Event');const QR=require('qrcode');const PDFDocument=require('pdfkit');const {auth,role}=require('../middleware/auth');const {signature,safeEqual}=require('../utils/ticket');
+const router=require('express').Router();
+const Ticket=require('../models/Ticket');
+const Event=require('../models/Event');
+const User=require('../models/User');
+const QR=require('qrcode');
+const {auth,role}=require('../middleware/auth');
+const {signature,safeEqual}=require('../utils/ticket');
+const {buildTicketPdf}=require('../utils/ticket-pdf');
+
 function isValid(t,s){return !!t&&t.status==='valid'&&safeEqual(s||'',signature(t.ticketCode,t.userId,t.eventId))}
+
 router.get('/mine',auth,async(req,res)=>res.json((await Ticket.find({userId:req.user._id}).sort({createdAt:-1}).lean()).map(t=>({...t,id:t._id.toString()}))));
+
 router.get('/organizer',auth,role('organizer','admin'),async(req,res)=>{
   const ids=req.user.role==='admin'?null:(await Event.find({organizerId:req.user._id}).select('_id').lean()).map(e=>e._id);
   const q=ids?{eventId:{$in:ids}}:{};
   if(req.query.eventId)q.eventId=req.query.eventId;
-  const ts=await Ticket.find(q).populate('userId','name email phone').sort({createdAt:-1}).lean();
-  res.json(ts.map(t=>({...t,id:t._id.toString(),attendee:t.userId&&typeof t.userId==='object'?{name:t.userId.name||'',email:t.userId.email||'',phone:t.userId.phone||''}:null,userId:t.userId&&typeof t.userId==='object'?t.userId._id:t.userId})));
+  const ts=await Ticket.find(q).sort({createdAt:-1}).lean();
+  res.json(ts.map(t=>({...t,id:t._id.toString()})));
 });
+
 router.get('/:id/qr',auth,role('organizer','admin'),async(req,res)=>{
   try{
     const t=await Ticket.findById(req.params.id).lean();
@@ -20,6 +31,55 @@ router.get('/:id/qr',auth,role('organizer','admin'),async(req,res)=>{
     res.json({ticketCode:t.ticketCode,status:t.status,verificationUrl,dataUrl});
   }catch(err){res.status(500).json({message:err.message||'Could not generate QR'})}
 });
-router.get('/:id/download',auth,async(req,res)=>{const t=await Ticket.findById(req.params.id);if(!t||String(t.userId)!==String(req.user._id))return res.status(404).json({message:'Ticket not found'});const base=process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`;const verify=`${base}/verify/${encodeURIComponent(t.ticketCode)}?sig=${encodeURIComponent(t.verificationSig)}`;const qr=await QR.toDataURL(verify,{width:280,margin:1,errorCorrectionLevel:'H'});const colors={Music:'#18d7ff',Food:'#ffb84d',Design:'#d7a6ff',Film:'#ff6b9d',Sports:'#77e08b',Wellness:'#8ec5ff',Community:'#fff'};const accent=colors[t.eventSnapshot.category]||'#18d7ff';const doc=new PDFDocument({size:[420,680],margin:28});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`attachment; filename="${t.ticketCode}.pdf"`);doc.pipe(res);doc.rect(0,0,420,680).fill('#050809');doc.roundedRect(18,18,384,644,24).fill('#0c1213').stroke('#263a3a');doc.fillColor(accent).fontSize(10).text('EVENTSPHERE · VERIFIED TICKET',40,44,{characterSpacing:2});doc.fillColor('#f4fbfb').fontSize(30).font('Helvetica-Bold').text(t.eventSnapshot.title,40,78,{width:330});doc.fillColor('#9bb0b0').fontSize(11).font('Helvetica').text(`${t.eventSnapshot.category} · ${t.eventSnapshot.city}`,40,165);doc.fillColor('#f4fbfb').fontSize(13).text(`${t.eventSnapshot.date} · ${t.eventSnapshot.time||''}`,40,198);doc.text(t.eventSnapshot.venue||'Venue TBA',40,220,{width:300});doc.image(qr,250,275,{width:125,height:125});doc.fillColor('#9bb0b0').fontSize(9).text('SCAN TO VERIFY',265,410,{width:100,align:'center'});doc.fillColor('#f4fbfb').fontSize(13).text('Ticket ID',40,300);doc.fillColor(accent).fontSize(16).font('Helvetica-Bold').text(t.ticketCode,40,320);doc.fillColor('#9bb0b0').fontSize(10).font('Helvetica').text(`Status: ${t.status.toUpperCase()}`,40,355);doc.text(`Paid: ₹${Number(t.amountPaid||0).toLocaleString('en-IN')}`,40,374);doc.text('This ticket is validated against the EventSphere database.',40,470,{width:320});doc.fillColor('#607474').fontSize(8).text('Do not edit the QR payload. Entry is subject to organizer validation.',40,590,{width:320});doc.end()});
-router.get('/verify/:code',async(req,res)=>{const t=await Ticket.findOne({ticketCode:req.params.code}).lean();const ok=isValid(t,req.query.sig);res.json({valid:ok,status:!t?'NOT_FOUND':!ok?'INVALID':t.status.toUpperCase(),ticket:ok?{ticketCode:t.ticketCode,event:t.eventSnapshot,checkedInAt:t.checkedInAt||null}:null})});
-router.post('/:id/checkin',auth,role('organizer','admin'),async(req,res)=>{const t=await Ticket.findById(req.params.id);if(!t)return res.status(404).json({message:'Ticket not found'});const e=await Event.findById(t.eventId);if(req.user.role==='organizer'&&String(e.organizerId)!==String(req.user._id))return res.status(403).json({message:'You do not manage this event'});if(t.status!=='valid')return res.status(409).json({message:`Ticket is ${t.status}`});t.status='used';t.checkedInAt=new Date();t.checkedInBy=req.user._id;await t.save();res.json({ok:true,message:'Ticket checked in',ticket:{id:t._id.toString(),status:t.status,checkedInAt:t.checkedInAt}})});module.exports=router;
+
+router.get('/:id/download',auth,async(req,res)=>{
+  try{
+    const t=await Ticket.findById(req.params.id).lean();
+    if(!t||String(t.userId)!==String(req.user._id))return res.status(404).json({message:'Ticket not found'});
+    const base=process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`;
+    const pdf=await buildTicketPdf(t,base);
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition',`attachment; filename="${t.ticketCode}.pdf"`);
+    res.send(pdf);
+  }catch(err){res.status(500).json({message:err.message||'Could not generate ticket PDF'})}
+});
+
+router.post('/:id/email',auth,async(req,res)=>{
+  try{
+    const t=await Ticket.findById(req.params.id).lean();
+    if(!t||String(t.userId)!==String(req.user._id))return res.status(404).json({message:'Ticket not found'});
+    if(!process.env.RESEND_API_KEY||!process.env.EMAIL_FROM){
+      return res.status(503).json({message:'Email tickets are not configured yet. Add RESEND_API_KEY and EMAIL_FROM in Netlify environment variables.'});
+    }
+    const user=await User.findById(req.user._id).select('name email').lean();
+    if(!user?.email)return res.status(400).json({message:'Your account does not have an email address'});
+    const base=process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`;
+    const pdf=await buildTicketPdf(t,base);
+    const response=await fetch('https://api.resend.com/emails',{
+      method:'POST',
+      headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        from:process.env.EMAIL_FROM,
+        to:[user.email],
+        subject:`Your EventSphere ticket · ${t.eventSnapshot?.title||'Event'}`,
+        html:`<div style="font-family:Arial,sans-serif;background:#050809;color:#eef8f8;padding:28px"><h2 style="color:#18d7ff">EventSphere ticket</h2><p>Hi ${String(user.name||'there').replace(/[<>]/g,'')}, your <strong>${String(t.ticketType?.name||'General Admission').replace(/[<>]/g,'')}</strong> ticket for <strong>${String(t.eventSnapshot?.title||'your event').replace(/[<>]/g,'')}</strong> is attached as a PDF.</p><p>Ticket code: <strong>${t.ticketCode}</strong></p><p>Keep the QR code ready for entry.</p></div>`,
+        attachments:[{filename:`${t.ticketCode}.pdf`,content:pdf.toString('base64')}]
+      })
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.message||'Email provider rejected the message');
+    res.json({ok:true,message:`Ticket emailed to ${user.email}`});
+  }catch(err){res.status(502).json({message:err.message||'Could not email ticket'})}
+});
+
+router.get('/verify/:code',async(req,res)=>{const t=await Ticket.findOne({ticketCode:req.params.code}).lean();const ok=isValid(t,req.query.sig);res.json({valid:ok,status:!t?'NOT_FOUND':!ok?'INVALID':t.status.toUpperCase(),ticket:ok?{ticketCode:t.ticketCode,event:t.eventSnapshot,ticketType:t.ticketType,checkedInAt:t.checkedInAt||null}:null})});
+
+router.post('/:id/checkin',auth,role('organizer','admin'),async(req,res)=>{
+  const t=await Ticket.findById(req.params.id);if(!t)return res.status(404).json({message:'Ticket not found'});
+  const e=await Event.findById(t.eventId);if(req.user.role==='organizer'&&(!e||String(e.organizerId)!==String(req.user._id)))return res.status(403).json({message:'You do not manage this event'});
+  if(t.status!=='valid')return res.status(409).json({message:`Ticket is ${t.status}`});
+  t.status='used';t.checkedInAt=new Date();t.checkedInBy=req.user._id;await t.save();
+  res.json({ok:true,message:'Ticket checked in',ticket:{id:t._id.toString(),status:t.status,checkedInAt:t.checkedInAt}})
+});
+
+module.exports=router;

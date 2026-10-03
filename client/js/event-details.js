@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isDatabaseEvent = /^[a-f0-9]{24}$/i.test(String(e.id));
   const salesClosed = ES.registrationDeadlinePassed(e);
   const soldOut = ES.seats(e) <= 0;
+  const ticketTypes = (Array.isArray(e.ticketTypes) && e.ticketTypes.length ? e.ticketTypes : [{name:'General Admission',price:Number(e.price||0),capacity:Number(e.capacity||1),sold:0,benefits:[]}]);
   const agenda = [
     ['18:30', 'Doors open & check-in'],
     ['19:00', 'Welcome + community introductions'],
@@ -71,9 +72,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="timeline">${agenda.map(a => `<div class="timeline-item"><div class="timeline-time">${a[0]}</div><div><strong>${a[1]}</strong><p class="muted">A short, useful moment in the experience.</p></div></div>`).join('')}</div>
       </div>
       <div class="event-community glass-panel">
-        <div><div class="section-kicker">Community pulse</div><h3>What guests say</h3><p class="muted">A lightweight rating system for your event history.</p></div>
+        <div><div class="section-kicker">Community pulse</div><h3>Rate this event</h3><p class="muted">Your rating helps shape EventSphere recommendations.</p></div>
         <div class="rating-row" id="rating-row">${[1, 2, 3, 4, 5].map(n => `<button data-rate="${n}">${n <= ES.getRating(e.id) ? '★' : '☆'}</button>`).join('')}</div>
       </div>
+      <section class="reviews-section glass-panel panel" id="reviews-section">
+        <div class="section-head"><div><div class="section-kicker">Reviews</div><h3>Real guest feedback</h3></div><span class="pill" id="review-summary">Loading…</span></div>
+        <div id="reviews-list" class="reviews-list"><div class="muted">Loading reviews…</div></div>
+        <div class="review-form" id="review-form" hidden>
+          <div class="section-kicker">Share your experience</div>
+          <div class="review-stars" id="review-stars">${[1,2,3,4,5].map(n=>`<button type="button" data-review-star="${n}">☆</button>`).join('')}</div>
+          <textarea id="review-comment" rows="4" maxlength="1000" placeholder="What did you enjoy or what should future guests know?"></textarea>
+          <button class="btn btn-cyan" id="submit-review" type="button">Publish review →</button>
+        </div>
+      </section>
       <div class="organizer-strip">
         <div class="avatar">${String(e.organizerName || 'E').slice(0, 1).toUpperCase()}</div>
         <div><div class="section-kicker">Hosted by</div><strong>${ES.esc(e.organizerName || 'EventSphere Organizer')}</strong><p class="muted">Independent host · ${ES.esc(e.city || 'Ahmedabad')}</p></div>
@@ -82,15 +93,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div id="tab-venue" hidden>
         <div class="section-kicker">Getting there</div>
         <h2 class="section-title" style="font-size:42px">${ES.esc(e.venue || 'Event venue')}</h2>
-        <p class="section-copy">${ES.esc(e.address || e.city || 'Ahmedabad')}</p>
-        ${e.mapUrl ? `<a class="btn btn-cyan" href="${ES.esc(e.mapUrl)}" target="_blank" rel="noopener">Open map ↗</a>` : '<div class="glass-panel panel" style="margin-top:20px;min-height:140px;display:grid;place-items:center;color:#6f7e7e">Map link not provided by organizer.</div>'}
+        <p class="section-copy">${ES.esc(e.city || 'Ahmedabad')} · Add this event to your calendar to keep the address handy.</p>
+        <div class="glass-panel panel" style="margin-top:20px;min-height:190px;display:grid;place-items:center;color:#6f7e7e">Map preview · venue location</div>
       </div>
-      ${Array.isArray(e.gallery) && e.gallery.length ? `<section class="glass-panel panel reveal" style="margin-top:18px"><div class="section-kicker">Event gallery</div><h3 style="margin:4px 0 14px">A closer look.</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${e.gallery.map(src=>`<img src="${ES.esc(src)}" alt="${ES.esc(e.title)}" loading="lazy" style="width:100%;height:150px;object-fit:cover;border-radius:16px;border:1px solid var(--line)" onerror="this.style.display='none'">`).join('')}</div></section>` : ''}
     </section>
     <aside class="glass-panel booking reveal">
       <div class="section-kicker">Your place</div>
-      <div class="booking-price">${Number(e.price || 0) === 0 ? 'Free' : '₹' + Number(e.price).toLocaleString('en-IN')}</div>
+      <div class="booking-price" id="selected-price">${Number(ticketTypes[0].price || 0) === 0 ? 'Free' : '₹' + Number(ticketTypes[0].price).toLocaleString('en-IN')}</div>
       <p class="muted">${ES.seats(e)} places currently available.</p>
+      <div class="ticket-type-options" id="ticket-type-options">${ticketTypes.map((t,i)=>`<button type="button" class="ticket-type-option ${i===0?'active':''}" data-ticket-type="${ES.esc(t._id||String(i))}"><span><strong>${ES.esc(t.name||'General Admission')}</strong><small>${Number(t.price||0)===0?'Free':'₹'+Number(t.price).toLocaleString('en-IN')} · ${Math.max(0,Number(t.capacity||0)-Number(t.sold||0))} left</small>${(t.benefits||[]).length?`<em>${ES.esc((t.benefits||[]).slice(0,3).join(' · '))}</em>`:''}</span><b>${i===0?'✓':''}</b></button>`).join('')}</div>
       ${salesClosed ? '<div class="glass-panel panel" style="margin:14px 0;padding:14px;border-color:rgba(255,110,134,.35)"><strong style="color:#ff6e86">Ticket sales closed</strong><p class="muted" style="margin:5px 0 0">The buying deadline for this event has passed.</p></div>' : ''}
       ${!salesClosed && soldOut ? '<div class="glass-panel panel" style="margin:14px 0;padding:14px"><strong>Sold out</strong><p class="muted" style="margin:5px 0 0">No tickets are currently available.</p></div>' : ''}
       <div class="countdown" id="countdown"><div><strong>--</strong><span>Days</span></div><div><strong>--</strong><span>Hours</span></div><div><strong>--</strong><span>Min</span></div></div>
@@ -100,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <button class="btn btn-ghost" id="share" type="button">Share</button>
       </div>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" id="calendar" type="button">＋ Add to calendar</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" id="report-event" type="button">⚑ Report this event</button>
       ${!isDatabaseEvent ? '<p class="muted" style="font-size:11px;margin-top:12px">Preview event: booking becomes available when this event exists in the EventSphere database.</p>' : ''}
     </aside>
   </div>`;
@@ -121,8 +133,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = Math.max(0, target - new Date());
     const vals = [Math.floor(d / 86400000), Math.floor(d / 3600000) % 24, Math.floor(d / 60000) % 60];
     countdown?.querySelectorAll('strong').forEach((x, i) => x.textContent = String(vals[i]).padStart(2, '0'));
-    const label=countdown?.previousElementSibling;
-    if(label && label.classList.contains('section-kicker')) label.textContent=d<=0?'Event time':'Event starts in';
   };
   updateCountdown();
   const timer = setInterval(updateCountdown, 1000);
@@ -170,6 +180,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.querySelector('#calendar').onclick = () => ES.addToCalendar(e);
 
+  let selectedType=ticketTypes[0];
+  const selectedTypeId=()=>String(selectedType?._id||ticketTypes.indexOf(selectedType));
+  const refreshTypeUi=()=>{
+    document.querySelectorAll('[data-ticket-type]').forEach(btn=>{
+      const active=String(btn.dataset.ticketType)===selectedTypeId();
+      btn.classList.toggle('active',active);
+      const mark=btn.querySelector('b'); if(mark)mark.textContent=active?'✓':'';
+    });
+    const price=document.querySelector('#selected-price');
+    if(price)price.textContent=Number(selectedType?.price||0)===0?'Free':'₹'+Number(selectedType.price).toLocaleString('en-IN');
+  };
+  document.querySelectorAll('[data-ticket-type]').forEach(btn=>btn.onclick=()=>{
+    const index=ticketTypes.findIndex((t,i)=>String(t._id||i)===String(btn.dataset.ticketType));
+    if(index>=0){selectedType=ticketTypes[index];refreshTypeUi();}
+  });
+
+  document.querySelector('#report-event').onclick=async()=>{
+    if(!ES.session.getToken()){location.href='login.html?next='+encodeURIComponent(location.href);return;}
+    const backdrop=document.createElement('div');backdrop.className='modal-backdrop';backdrop.innerHTML=`<div class="modal report-modal"><div class="section-kicker">Community safety</div><h2 class="serif" style="font-size:34px;margin:6px 0">Report this event.</h2><p class="muted">Tell the EventSphere team what needs attention. Reports are reviewed by admins.</p><div class="field"><label>Reason</label><select id="report-reason"><option value="misleading">Misleading information</option><option value="inappropriate">Inappropriate content</option><option value="spam">Spam or promotion</option><option value="safety">Safety concern</option><option value="duplicate">Duplicate event</option><option value="other">Other</option></select></div><div class="field"><label>Details</label><textarea id="report-details" rows="5" maxlength="1000" placeholder="Optional details"></textarea></div><button class="btn btn-cyan" id="submit-report" type="button">Submit report</button><button class="btn btn-ghost" id="cancel-report" type="button" style="width:100%;margin-top:8px">Cancel</button></div>`;document.body.append(backdrop);backdrop.querySelector('#cancel-report').onclick=()=>backdrop.remove();backdrop.addEventListener('click',ev=>{if(ev.target===backdrop)backdrop.remove()});backdrop.querySelector('#submit-report').onclick=async()=>{const b=backdrop.querySelector('#submit-report');b.disabled=true;b.textContent='Submitting…';try{await ES.api('/event-reports',{method:'POST',body:{eventId:e.id,reason:backdrop.querySelector('#report-reason').value,details:backdrop.querySelector('#report-details').value}});backdrop.remove();ES.toast('Report submitted to EventSphere admin','success')}catch(err){ES.toast(err.message||'Could not submit report','error');b.disabled=false;b.textContent='Submit report'}};
+  };
+
   // Complete booking workflow.
   document.querySelector('#reserve').onclick = async () => {
     if (!ES.session.getToken()) {
@@ -196,81 +227,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     backdrop.className = 'modal-backdrop ticket-modal';
     backdrop.innerHTML = `<div class="modal demo-payment-modal">
       <div class="section-kicker">EventSphere Checkout</div>
-      <h2 class="serif" style="font-size:38px;margin:6px 0">Reserve your place.</h2>
+      <h2 class="serif" style="font-size:38px;margin:6px 0">Choose your ticket.</h2>
       <p class="muted">${ES.esc(e.title)}</p>
-      <div class="ticket-row"><div><strong>General admission</strong><div class="muted">${Number(e.price || 0) === 0 ? 'Free reservation' : 'Demo payment · no real money'}</div></div><div class="qty"><button type="button" data-minus>−</button><strong id="qty">1</strong><button type="button" data-plus>+</button></div></div>
-      <div class="ticket-total"><span>Total</span><strong id="total">${Number(e.price || 0) === 0 ? 'Free' : '₹' + Number(e.price || 0).toLocaleString('en-IN')}</strong></div>
-      ${Number(e.price || 0) > 0 ? `<div class="demo-methods"><button type="button" class="demo-method active" data-method="upi">UPI</button><button type="button" class="demo-method" data-method="card">Card</button><button type="button" class="demo-method" data-method="netbanking">Net Banking</button></div><div class="demo-payment-box"><div class="demo-payment-icon">✓</div><div><strong>Demo payment</strong><p class="muted">No real money is charged. Do not enter real card or bank details.</p></div></div>` : ''}
-      <button class="btn btn-cyan" style="width:100%" id="confirm" type="button">${Number(e.price || 0) === 0 ? 'Confirm reservation →' : 'Complete demo payment →'}</button>
+      <div class="checkout-ticket-card"><strong id="checkout-type-name">${ES.esc(selectedType.name||'General Admission')}</strong><div class="muted" id="checkout-benefits">${ES.esc((selectedType.benefits||[]).join(' · ')||'Standard event entry')}</div></div>
+      <div class="ticket-row"><div><strong>Quantity</strong><div class="muted" id="checkout-type-price">${Number(selectedType.price||0)===0?'Free reservation':'₹'+Number(selectedType.price).toLocaleString('en-IN')+' each'}</div></div><div class="qty"><button type="button" data-minus>−</button><strong id="qty">1</strong><button type="button" data-plus>+</button></div></div>
+      <div class="ticket-total"><span>Total</span><strong id="total">${Number(selectedType.price||0)===0?'Free':'₹'+Number(selectedType.price||0).toLocaleString('en-IN')}</strong></div>
+      ${Number(selectedType.price || 0) > 0 ? `<div class="demo-methods"><button type="button" class="demo-method active" data-method="upi">UPI</button><button type="button" class="demo-method" data-method="card">Card</button><button type="button" class="demo-method" data-method="netbanking">Net Banking</button></div><div class="demo-payment-box"><div class="demo-payment-icon">✓</div><div><strong>Demo payment</strong><p class="muted">No real money is charged. Do not enter real card or bank details.</p></div></div>` : ''}
+      <button class="btn btn-cyan" style="width:100%" id="confirm" type="button">${Number(selectedType.price || 0) === 0 ? 'Confirm reservation →' : 'Complete demo payment →'}</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" id="cancel" type="button">Cancel</button>
-      <small class="muted checkout-note">Your order and ticket are stored in MongoDB. The QR ticket can later be verified and checked in.</small>
+      <small class="muted checkout-note">Your order and ticket are stored in MongoDB. You can download or email the ticket after checkout.</small>
     </div>`;
     document.body.append(backdrop);
 
     let qty = 1;
     let method = 'upi';
-    const price = Number(e.price || 0);
+    const price = Number(selectedType.price || 0);
+    const typeRemaining = Math.max(0, Number(selectedType.capacity || ES.seats(e)) - Number(selectedType.sold || 0));
+    const maxQty = Math.max(1, Math.min(10, ES.seats(e), typeRemaining || ES.seats(e)));
     const update = () => {
       backdrop.querySelector('#qty').textContent = qty;
       backdrop.querySelector('#total').textContent = price === 0 ? 'Free' : '₹' + (price * qty).toLocaleString('en-IN');
     };
-
-    backdrop.querySelector('[data-plus]').onclick = () => {
-      if (qty < Math.min(10, ES.seats(e))) {
-        qty += 1;
-        update();
-      }
-    };
-    backdrop.querySelector('[data-minus]').onclick = () => {
-      qty = Math.max(1, qty - 1);
-      update();
-    };
+    backdrop.querySelector('[data-plus]').onclick = () => { if (qty < maxQty) { qty += 1; update(); } };
+    backdrop.querySelector('[data-minus]').onclick = () => { qty = Math.max(1, qty - 1); update(); };
     backdrop.querySelector('#cancel').onclick = () => backdrop.remove();
-    backdrop.addEventListener('click', ev => {
-      if (ev.target === backdrop) backdrop.remove();
-    });
-    backdrop.querySelectorAll('.demo-method').forEach(btn => btn.onclick = () => {
-      method = btn.dataset.method;
-      backdrop.querySelectorAll('.demo-method').forEach(x => x.classList.remove('active'));
-      btn.classList.add('active');
-    });
-
+    backdrop.addEventListener('click', ev => { if (ev.target === backdrop) backdrop.remove(); });
+    backdrop.querySelectorAll('.demo-method').forEach(btn => btn.onclick = () => { method = btn.dataset.method; backdrop.querySelectorAll('.demo-method').forEach(x => x.classList.remove('active')); btn.classList.add('active'); });
     backdrop.querySelector('#confirm').onclick = async () => {
-      const btn = backdrop.querySelector('#confirm');
-      btn.disabled = true;
-      btn.textContent = price === 0 ? 'Creating reservation…' : 'Processing demo payment…';
-
+      const btn = backdrop.querySelector('#confirm'); btn.disabled = true; btn.textContent = price === 0 ? 'Creating reservation…' : 'Processing demo payment…';
       try {
-        const order = await ES.api('/payments/order', {
-          method: 'POST',
-          body: { eventId: e.id, quantity: qty }
-        });
-
-        if (order.mode === 'free') {
-          ES.toast('Reservation confirmed · ticket issued ✓', 'success');
-          backdrop.remove();
-          location.href = 'tickets.html';
-          return;
-        }
-
-        const result = await ES.api('/payments/demo-pay', {
-          method: 'POST',
-          body: { orderDbId: order.orderDbId, paymentMethod: method }
-        });
-
-        if (!result.ok) throw new Error('Demo payment could not be completed');
-
-        ES.pushNotification('Booking confirmed', `Your ticket for ${e.title} is ready.`);
-        ES.toast('Payment successful · ticket issued ✓', 'success');
-        backdrop.remove();
-        location.href = 'tickets.html';
-      } catch (err) {
-        ES.toast(err.message || 'Checkout failed', 'error');
-        btn.disabled = false;
-        btn.textContent = price === 0 ? 'Confirm reservation →' : 'Complete demo payment →';
-      }
+        const order = await ES.api('/payments/order', { method:'POST', body:{eventId:e.id,quantity:qty,ticketTypeId:selectedType._id||undefined} });
+        if(order.mode==='free'){ES.toast('Reservation confirmed · ticket issued ✓','success');backdrop.remove();location.href='tickets.html';return;}
+        const result=await ES.api('/payments/demo-pay',{method:'POST',body:{orderDbId:order.orderDbId,paymentMethod:method}});
+        if(!result.ok)throw new Error('Demo payment could not be completed');
+        ES.pushNotification('Booking confirmed',`Your ${selectedType.name} ticket for ${e.title} is ready.`);ES.toast('Payment successful · ticket issued ✓','success');backdrop.remove();location.href='tickets.html';
+      }catch(err){ES.toast(err.message||'Checkout failed','error');btn.disabled=false;btn.textContent=price===0?'Confirm reservation →':'Complete demo payment →';}
     };
   };
+
+
+  async function loadReviews(){
+    try{
+      const data=await ES.api('/events/'+encodeURIComponent(e.id)+'/reviews',{auth:false});
+      const summary=document.querySelector('#review-summary');
+      if(summary)summary.textContent=`${Number(data.average||0).toFixed(1)} ★ · ${data.count||0} review${Number(data.count||0)===1?'':'s'}`;
+      const listEl=document.querySelector('#reviews-list');
+      if(listEl)listEl.innerHTML=(data.reviews||[]).length?(data.reviews||[]).map(r=>`<article class="review-card"><div class="review-card-head"><strong>${ES.esc(r.userName)}</strong><span>${'★'.repeat(Number(r.rating||0))}${'☆'.repeat(5-Number(r.rating||0))}</span></div><p>${ES.esc(r.comment||'No written comment.')}</p><small class="muted">${new Date(r.createdAt).toLocaleDateString('en-IN')}</small></article>`).join(''):'<div class="empty">No reviews yet. Be the first guest to share an experience.</div>';
+      if(ES.session.getToken()){
+        const mine=await ES.api('/me/reviews/'+encodeURIComponent(e.id)+'/mine').catch(()=>null);
+        const form=document.querySelector('#review-form');
+        if(form)form.hidden=false;
+        if(mine){document.querySelectorAll('[data-review-star]').forEach(b=>b.textContent=Number(b.dataset.reviewStar)<=Number(mine.rating)?'★':'☆');document.querySelector('#review-comment').value=mine.comment||'';}
+      }
+    }catch{const el=document.querySelector('#reviews-list');if(el)el.innerHTML='<div class="muted">Reviews are temporarily unavailable.</div>';}
+  }
+  let reviewRating=ES.getRating(e.id)||0;
+  document.querySelectorAll('[data-review-star]').forEach(b=>b.onclick=()=>{reviewRating=Number(b.dataset.reviewStar);document.querySelectorAll('[data-review-star]').forEach(x=>x.textContent=Number(x.dataset.reviewStar)<=reviewRating?'★':'☆')});
+  document.querySelector('#submit-review')?.addEventListener('click',async()=>{if(!ES.session.getToken()){location.href='login.html?next='+encodeURIComponent(location.href);return;}if(!reviewRating){ES.toast('Choose a rating first','error');return;}const btn=document.querySelector('#submit-review');btn.disabled=true;try{await ES.api('/me/reviews/'+encodeURIComponent(e.id),{method:'POST',body:{rating:reviewRating,comment:document.querySelector('#review-comment').value}});ES.setRating(e.id,reviewRating);ES.toast('Review saved ✓','success');await loadReviews()}catch(err){ES.toast(err.message,'error')}finally{btn.disabled=false}});
+  loadReviews();
 
   const similar = document.createElement('section');
   similar.className = 'section';

@@ -81,45 +81,13 @@ app.use(
     })
 );
 
-/* =========================================================
-   NETLIFY / SERVERLESS BODY NORMALIZATION
-
-   serverless-http can expose JSON request bodies as Buffers.
-   Convert normal API bodies into plain JavaScript objects.
-
-   IMPORTANT:
-   Keep the Razorpay webhook raw because it requires
-   the original raw request body.
-========================================================= */
-
-app.use((req, res, next) => {
-    // Never modify the raw payment webhook body.
-    if (req.path === '/api/payments/webhook') {
-        return next();
-    }
-
-    let body = req.body;
-
-    if (Buffer.isBuffer(body)) {
-        body = body.toString('utf8');
-    }
-
-    if (typeof body === 'string' && body.trim()) {
-        try {
-            body = JSON.parse(body);
-        } catch {
-            // Leave non-JSON body alone.
-        }
-    }
-
-    if (
-        body &&
-        typeof body === 'object' &&
-        !Buffer.isBuffer(body)
-    ) {
-        req.body = body;
-    }
-
+/* Netlify/serverless request-body normalization. */
+app.use((req,res,next)=>{
+    if(req.path==='/api/payments/webhook')return next();
+    let body=req.body;
+    if(Buffer.isBuffer(body))body=body.toString('utf8');
+    if(typeof body==='string'&&body.trim()){try{body=JSON.parse(body)}catch{}}
+    if(body&&typeof body==='object'&&!Buffer.isBuffer(body))req.body=body;
     next();
 });
 
@@ -179,6 +147,16 @@ app.use(
 app.use(
     '/api/contact',
     require('./routes/contact')
+);
+
+app.use(
+    '/api/event-reports',
+    require('./routes/event-reports')
+);
+
+app.use(
+    '/api/recommendations',
+    require('./routes/recommendations')
 );
 
 
@@ -566,92 +544,29 @@ app.use(
 let adminInitPromise = null;
 
 async function ensureAdmin() {
-    if (adminInitPromise) {
-        return adminInitPromise;
-    }
+    if (adminInitPromise) return adminInitPromise;
 
     adminInitPromise = (async () => {
         const User = require('./models/User');
         const bcrypt = require('bcryptjs');
 
-        /*
-         * Admin creation is optional.
-         * If ADMIN_EMAIL / ADMIN_PASSWORD are not configured,
-         * do nothing.
-         */
-        if (
-            !process.env.ADMIN_EMAIL ||
-            !process.env.ADMIN_PASSWORD
-        ) {
+        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
             return;
         }
 
-        const adminEmail =
-            String(process.env.ADMIN_EMAIL)
-                .trim()
-                .toLowerCase();
+        const adminEmail = process.env.ADMIN_EMAIL.toLowerCase().trim();
+        const adminExists = await User.exists({ email: adminEmail });
 
-        /*
-         * IMPORTANT:
-         * Do not convert an existing normal user into an admin.
-         */
-        const existingUser = await User.findOne({
-            email: adminEmail
-        });
-
-        if (existingUser) {
-            if (existingUser.role !== 'admin') {
-                console.log(
-                    `ℹ️ ADMIN_EMAIL belongs to an existing ${existingUser.role} account.`
-                );
-                console.log(
-                    'ℹ️ Existing account was NOT modified.'
-                );
-            }
-
-            return;
+        if (!adminExists) {
+            await User.create({
+                name: process.env.ADMIN_NAME || 'EventAdmin',
+                email: adminEmail,
+                passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD, 12),
+                role: 'admin'
+            });
+            console.log(`✅ Admin account created: ${adminEmail}`);
         }
-
-        /*
-         * Create the admin only when the admin email
-         * does not already exist.
-         */
-        const passwordHash = await bcrypt.hash(
-            String(process.env.ADMIN_PASSWORD),
-            12
-        );
-
-        await User.create({
-            name:
-                process.env.ADMIN_NAME ||
-                'EventSphere Admin',
-
-            email: adminEmail,
-
-            passwordHash,
-
-            role: 'admin',
-
-            status: 'active'
-        });
-
-        console.log(
-            `✅ Admin account created: ${adminEmail}`
-        );
-
-    })().catch(error => {
-        adminInitPromise = null;
-
-        console.error(
-            '❌ Admin initialization error:',
-            error
-        );
-
-        /*
-         * Do NOT prevent normal users from logging in
-         * because admin initialization failed.
-         */
-    });
+    })();
 
     return adminInitPromise;
 }
